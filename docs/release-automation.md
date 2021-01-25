@@ -101,11 +101,11 @@ default editor:
 
 ## Hacking the build (FIXME)
 
-Before tagging a release candidates it is unfortunately necessary
-to comment out the `<phase>package</phase>` element in the 
-`suite-runner-jar` execution of the Assembly Plugin. If this is 
-left in, _again_ the Release Plugin will fail at almost the very 
-last moment.
+Before tagging release candidates it is unfortunately necessary
+to comment out the `<phase>package</phase>` element in 
+_test-clients/pom.xml_, in the `suite-runner-jar` 
+execution of the Assembly Plugin. If this is left in, again 
+the Release Plugin will fail at almost the very last moment.
 
 **NOTE:** After tagging, and preparing for regression, it is then necessary
 to restore the `<phase>package</phase>` element, since JRS relies
