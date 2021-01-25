@@ -40,6 +40,8 @@ import com.hedera.services.state.merkle.MerkleAccount;
 import com.hedera.services.state.submerkle.SequenceNumber;
 import com.hedera.services.stats.MiscRunningAvgs;
 import com.hedera.services.stats.MiscSpeedometers;
+import com.hedera.services.stream.RecordStreamManager;
+import com.hedera.services.stream.RecordStreamObject;
 import com.hedera.services.txns.TransitionLogicLookup;
 import com.hedera.services.txns.validation.OptionValidator;
 import com.hedera.services.utils.PlatformTxnAccessor;
@@ -57,14 +59,13 @@ import com.hederahashgraph.api.proto.java.TransactionRecord;
 import com.swirlds.common.Address;
 import com.swirlds.common.AddressBook;
 import com.swirlds.common.Transaction;
+import com.swirlds.common.crypto.RunningHash;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -76,7 +77,6 @@ import static com.hedera.services.txns.diligence.DuplicateClassification.BELIEVE
 import static com.hederahashgraph.api.proto.java.ResponseCodeEnum.MEMO_TOO_LONG;
 import static org.mockito.BDDMockito.*;
 
-@RunWith(JUnitPlatform.class)
 class AwareProcessLogicTest {
 	Logger mockLog;
 	Transaction platformTxn;
@@ -238,160 +238,16 @@ class AwareProcessLogicTest {
 	}
 
 	@Test
-	@DisplayName("incorporateConsensusTxn assigns a failure due to memo size for ContractCreateInstance")
-	public void shortCircuitsOnMemoSizeForContractCreate() {
-		// setup:
-		final Instant now = Instant.now();
-		final Instant then = now.minusMillis(10L);
-		final IssEventInfo eventInfo = mock(IssEventInfo.class);
-		final TransactionRecord record = mock(TransactionRecord.class);
-		given(eventInfo.status()).willReturn(NO_KNOWN_ISS);
+	public void addForStreamingTest() {
+		//setup:
+		RecordStreamManager recordStreamManager = mock(RecordStreamManager.class);
+		when(ctx.recordStreamManager()).thenReturn(recordStreamManager);
 
-		given(ctx.consensusTimeOfLastHandledTxn()).willReturn(then);
-		given(ctx.addressBook().getAddress(666).getStake()).willReturn(1L);
-		given(ctx.issEventInfo()).willReturn(eventInfo);
-		given(txnCtx.consensusTime()).willReturn(now);
-		given(txnBody.hasContractCreateInstance()).willReturn(true);
-		given(txnBody.getContractCreateInstance()).willReturn(ContractCreateTransactionBody.newBuilder()
-				.setMemo("This is a very long memo because it contains more than 100 characters, " +
-						"which is greater than it is expected")
-				.setFileID(FileID.newBuilder().build())
-				.setAutoRenewPeriod(Duration.newBuilder().setSeconds(10).build())
-				.build());
-
-		given(contracts.getFailureTransactionRecord(any(), any(), any())).willReturn(record);
-
-		// when:
-		subject.incorporateConsensusTxn(platformTxn, now, 666);
-
-		// then:
-		verify(contracts).getFailureTransactionRecord(txnBody, now, MEMO_TOO_LONG);
-	}
-
-	@Test
-	@DisplayName("creates a contract with small memo size")
-	public void contractCreateInstanceIsCreated() {
-		// setup:
-		final byte[] contractByteCode = new byte[] { 100 };
-		final SequenceNumber sequenceNumber = new SequenceNumber();
-		final Instant now = Instant.now();
-		final Instant then = now.minusMillis(10L);
-		final IssEventInfo eventInfo = mock(IssEventInfo.class);
-		final TransactionRecord record = mock(TransactionRecord.class);
-		given(eventInfo.status()).willReturn(NO_KNOWN_ISS);
-
-		given(ctx.consensusTimeOfLastHandledTxn()).willReturn(then);
-		given(ctx.addressBook().getAddress(666).getStake()).willReturn(1L);
-		given(ctx.issEventInfo()).willReturn(eventInfo);
-		given(ctx.seqNo()).willReturn(sequenceNumber);
-
-		given(txnCtx.consensusTime()).willReturn(now);
-		given(txnBody.hasContractCreateInstance()).willReturn(true);
-		given(txnBody.getContractCreateInstance()).willReturn(ContractCreateTransactionBody.newBuilder()
-				.setMemo("This is a very small memo")
-				.setFileID(FileID.newBuilder().build())
-				.setAutoRenewPeriod(Duration.newBuilder().setSeconds(10).build())
-				.build());
-		given(hfs.cat(any())).willReturn(contractByteCode);
-
-
-		// when:
-		subject.incorporateConsensusTxn(platformTxn, now, 666);
-
-		// then:
-		verify(contracts).createContract(txnBody, now, contractByteCode, sequenceNumber);
-	}
-
-	@Test
-	@DisplayName("creates a contract with no memo")
-	public void contractCreateInstanceIsCreatedNoMemo() {
-		// setup:
-		final byte[] contractByteCode = new byte[] { 100 };
-		final SequenceNumber sequenceNumber = new SequenceNumber();
-		final Instant now = Instant.now();
-		final Instant then = now.minusMillis(10L);
-		final IssEventInfo eventInfo = mock(IssEventInfo.class);
-		final TransactionRecord record = mock(TransactionRecord.class);
-		given(eventInfo.status()).willReturn(NO_KNOWN_ISS);
-
-		given(ctx.consensusTimeOfLastHandledTxn()).willReturn(then);
-		given(ctx.addressBook().getAddress(666).getStake()).willReturn(1L);
-		given(ctx.issEventInfo()).willReturn(eventInfo);
-		given(ctx.seqNo()).willReturn(sequenceNumber);
-
-		given(txnCtx.consensusTime()).willReturn(now);
-		given(txnBody.hasContractCreateInstance()).willReturn(true);
-		given(txnBody.getContractCreateInstance()).willReturn(ContractCreateTransactionBody.newBuilder()
-				.setFileID(FileID.newBuilder().build())
-				.setAutoRenewPeriod(Duration.newBuilder().setSeconds(10).build())
-				.build());
-		given(hfs.cat(any())).willReturn(contractByteCode);
-
-
-		// when:
-		subject.incorporateConsensusTxn(platformTxn, now, 666);
-
-		// then:
-		verify(contracts).createContract(txnBody, now, contractByteCode, sequenceNumber);
-	}
-
-	@Test
-	@DisplayName("incorporateConsensusTxn assigns a failure due to memo size for ContractUpdateInstance")
-	public void shortCircuitsOnMemoSizeForContractUpdate() {
-		// setup:
-		final Instant now = Instant.now();
-		final Instant then = now.minusMillis(10L);
-		final IssEventInfo eventInfo = mock(IssEventInfo.class);
-		final TransactionRecord record = mock(TransactionRecord.class);
-		given(eventInfo.status()).willReturn(NO_KNOWN_ISS);
-
-		given(ctx.consensusTimeOfLastHandledTxn()).willReturn(then);
-		given(ctx.addressBook().getAddress(666).getStake()).willReturn(1L);
-		given(ctx.issEventInfo()).willReturn(eventInfo);
-		given(txnCtx.consensusTime()).willReturn(now);
-		given(txnBody.hasContractUpdateInstance()).willReturn(true);
-		given(txnBody.getContractUpdateInstance()).willReturn(ContractUpdateTransactionBody.newBuilder()
-				.setMemo("This is a very long memo because it contains more than 100 characters, " +
-						"which is greater than it is expected")
-				.setFileID(FileID.newBuilder().build())
-				.setAutoRenewPeriod(Duration.newBuilder().setSeconds(10).build())
-				.build());
-
-		given(contracts.getFailureTransactionRecord(any(), any(), any())).willReturn(record);
-
-		// when:
-		subject.incorporateConsensusTxn(platformTxn, now, 666);
-
-		// then:
-		verify(contracts).getFailureTransactionRecord(txnBody, now, MEMO_TOO_LONG);
-	}
-
-	@Test
-	@DisplayName("ContractUpdateInstance is updated in contracts")
-	public void contractUpdateInstanceIsUpdate() {
-		// setup:
-		final Instant now = Instant.now();
-		final Instant then = now.minusMillis(10L);
-		final IssEventInfo eventInfo = mock(IssEventInfo.class);
-		final TransactionRecord record = mock(TransactionRecord.class);
-		given(eventInfo.status()).willReturn(NO_KNOWN_ISS);
-
-		given(ctx.consensusTimeOfLastHandledTxn()).willReturn(then);
-		given(ctx.addressBook().getAddress(666).getStake()).willReturn(1L);
-		given(ctx.issEventInfo()).willReturn(eventInfo);
-		given(txnCtx.consensusTime()).willReturn(now);
-		given(txnBody.hasContractUpdateInstance()).willReturn(true);
-		given(txnBody.getContractUpdateInstance()).willReturn(ContractUpdateTransactionBody.newBuilder()
-				.setMemo("This is a very small memo")
-				.setFileID(FileID.newBuilder().build())
-				.setAutoRenewPeriod(Duration.newBuilder().setSeconds(10).build())
-				.build());
-
-
-		// when:
-		subject.incorporateConsensusTxn(platformTxn, now, 666);
-
-		// then:
-		verify(contracts).updateContract(txnBody, now);
+		//when:
+		subject.addForStreaming(mock(com.hederahashgraph.api.proto.java.Transaction.class),
+				mock(TransactionRecord.class), Instant.now());
+		//then:
+		verify(ctx).updateRecordRunningHash(any(RunningHash.class));
+		verify(recordStreamManager).addRecordStreamObject(any(RecordStreamObject.class));
 	}
 }

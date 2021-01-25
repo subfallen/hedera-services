@@ -47,8 +47,6 @@ import com.swirlds.common.crypto.VerificationStatus;
 import com.swirlds.common.crypto.engine.CryptoEngine;
 import com.swirlds.fcmap.FCMap;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -83,7 +81,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.mock;
 
-@RunWith(JUnitPlatform.class)
 public class SigOpsRegressionTest {
 	private HederaFs hfs;
 	private MiscRunningAvgs runningAvgs;
@@ -336,7 +333,7 @@ public class SigOpsRegressionTest {
 		platformTxn.getPlatformTxn().addAll(knownSigs.toArray(new TransactionSignature[0]));
 		HederaSigningOrder keysOrder = new HederaSigningOrder(
 				new MockEntityNumbers(),
-				defaultLookupsFor(null, () -> accounts, () -> null, ref -> null),
+				defaultLookupsFor(null, () -> accounts, () -> null, ref -> null, ref -> null),
 				updateAccountSigns,
 				targetWaclSigns);
 
@@ -348,7 +345,7 @@ public class SigOpsRegressionTest {
 		platformTxn.getPlatformTxn().addAll(knownSigs.toArray(new TransactionSignature[0]));
 		HederaSigningOrder keysOrder = new HederaSigningOrder(
 				new MockEntityNumbers(),
-				defaultLookupsFor(hfs, () -> accounts, null, ref -> null),
+				defaultLookupsFor(hfs, () -> accounts, null, ref -> null, ref -> null),
 				updateAccountSigns,
 				targetWaclSigns);
 
@@ -359,7 +356,7 @@ public class SigOpsRegressionTest {
 		int MAGIC_NUMBER = 10;
 		SigMetadataLookup sigMetaLookups =
 				defaultLookupsPlusAccountRetriesFor(
-						hfs, () -> accounts, () -> null, ref -> null, MAGIC_NUMBER, MAGIC_NUMBER,
+						hfs, () -> accounts, () -> null, ref -> null, ref -> null, MAGIC_NUMBER, MAGIC_NUMBER,
 						runningAvgs, speedometers);
 		HederaSigningOrder keyOrder = new HederaSigningOrder(
 				new MockEntityNumbers(),
@@ -372,7 +369,7 @@ public class SigOpsRegressionTest {
 
 	private SignatureStatus invokeRationalizationScenario() throws Exception {
 		SyncVerifier syncVerifier = new CryptoEngine()::verifySync;
-		SigMetadataLookup sigMetaLookups = defaultLookupsFor(hfs, () -> accounts, () -> null, ref -> null);
+		SigMetadataLookup sigMetaLookups = defaultLookupsFor(hfs, () -> accounts, () -> null, ref -> null, ref -> null);
 		HederaSigningOrder keyOrder = new HederaSigningOrder(
 				new MockEntityNumbers(),
 				sigMetaLookups,
@@ -393,7 +390,7 @@ public class SigOpsRegressionTest {
 
 		signingOrder = new HederaSigningOrder(
 				new MockEntityNumbers(),
-				defaultLookupsFor(hfs, () -> accounts, () -> null, ref -> null),
+				defaultLookupsFor(hfs, () -> accounts, () -> null, ref -> null, ref -> null),
 				updateAccountSigns,
 				targetWaclSigns);
 		SigningOrderResult<SignatureStatus> payerKeys =

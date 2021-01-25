@@ -34,12 +34,11 @@ import com.hedera.services.legacy.handler.SmartContractRequestHandler;
 import com.hedera.services.legacy.util.SCEncoding;
 import com.hedera.services.records.AccountRecordsHistorian;
 import com.hedera.services.state.expiry.ExpiringCreations;
-import com.hedera.services.tokens.TokenStore;
+import com.hedera.services.store.tokens.TokenStore;
 import com.hedera.services.utils.EntityIdUtils;
 import com.hedera.services.utils.MiscUtils;
 import com.hedera.test.mocks.SolidityLifecycleFactory;
 import com.hedera.test.mocks.StorageSourceFactory;
-import com.hedera.test.mocks.TestProperties;
 import com.hedera.test.mocks.TestUsagePricesProvider;
 import com.hederahashgraph.api.proto.java.AccountID;
 import com.hederahashgraph.api.proto.java.ContractCallLocalQuery;
@@ -92,8 +91,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -105,7 +102,6 @@ import static org.mockito.Mockito.mock;
  */
 
 @Disabled
-@RunWith(JUnitPlatform.class)
 public class SmartContractRequestHandlerPayableTest {
 
   public static final String PAYABLE_TEST_BIN = "/testfiles/PayTest.bin";
@@ -168,8 +164,8 @@ public class SmartContractRequestHandlerPayableTest {
     contractFileId = RequestBuilder.getFileIdBuild(contractFileNumber, 0L, 0L);
 
     //Init FCMap
-    fcMap = new FCMap<>(new MerkleEntityId.Provider(), MerkleAccount.LEGACY_PROVIDER);
-    storageMap = new FCMap<>(new MerkleBlobMeta.Provider(), new MerkleOptionalBlob.Provider());
+    fcMap = new FCMap<>();
+    storageMap = new FCMap<>();
     // Create accounts
     createAccount(payerAccountId, INITIAL_BALANCE);
     createAccount(nodeAccountId, INITIAL_BALANCE);

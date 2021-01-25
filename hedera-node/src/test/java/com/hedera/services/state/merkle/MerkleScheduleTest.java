@@ -34,8 +34,6 @@ import com.swirlds.common.io.SerializableDataOutputStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 
 import java.io.IOException;
@@ -60,7 +58,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
-@RunWith(JUnitPlatform.class)
 public class MerkleScheduleTest {
     final int TX_BYTES = 64;
     byte[] transactionBody, otherTransactionBody;
@@ -140,10 +137,13 @@ public class MerkleScheduleTest {
     }
 
     @Test
-    public void validPutSigner() {
+    public void validAddSigners() {
         var containsBefore = subject.signers().contains(signer3);
+        // setup:
+        var signers = new LinkedHashSet<JKey>();
+        signers.add(signer3);
         // when:
-        subject.addSigner(signer3);
+        subject.addSigners(signers);
 
         // expect:
         var containsAfter = subject.signers().contains(signer3);

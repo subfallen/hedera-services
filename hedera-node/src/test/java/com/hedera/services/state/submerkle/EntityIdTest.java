@@ -23,21 +23,19 @@ package com.hedera.services.state.submerkle;
 import com.hederahashgraph.api.proto.java.AccountID;
 import com.hederahashgraph.api.proto.java.ContractID;
 import com.hederahashgraph.api.proto.java.FileID;
+import com.hederahashgraph.api.proto.java.ScheduleID;
 import com.hederahashgraph.api.proto.java.TokenID;
 import com.hederahashgraph.api.proto.java.TopicID;
 import com.swirlds.common.io.SerializableDataInputStream;
 import com.swirlds.common.io.SerializableDataOutputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
-@RunWith(JUnitPlatform.class)
 public class EntityIdTest {
 	long shard = 1L, realm = 2L, num = 3L;
 
@@ -68,6 +66,11 @@ public class EntityIdTest {
 			.setShardNum(shard)
 			.setRealmNum(realm)
 			.setTokenNum(num)
+			.build();
+	ScheduleID scheduleId = ScheduleID.newBuilder()
+			.setShardNum(shard)
+			.setRealmNum(realm)
+			.setScheduleNum(num)
 			.build();
 
 	EntityId subject;
@@ -131,12 +134,14 @@ public class EntityIdTest {
 		assertNull(EntityId.ofNullableContractId(null));
 		assertNull(EntityId.ofNullableTopicId(null));
 		assertNull(EntityId.ofNullableTokenId(null));
+		assertNull(EntityId.ofNullableScheduleId(null));
 		// and:
 		assertEquals(subject, EntityId.ofNullableAccountId(accountId));
 		assertEquals(subject, EntityId.ofNullableContractId(contractId));
 		assertEquals(subject, EntityId.ofNullableTopicId(topicId));
 		assertEquals(subject, EntityId.ofNullableFileId(fileId));
 		assertEquals(subject, EntityId.ofNullableTokenId(tokenId));
+		assertEquals(subject, EntityId.ofNullableScheduleId(scheduleId));
 	}
 
 	@Test
@@ -199,5 +204,6 @@ public class EntityIdTest {
 		assertEquals(accountId, subject.toGrpcAccountId());
 		assertEquals(contractId, subject.toGrpcContractId());
 		assertEquals(tokenId, subject.toGrpcTokenId());
+		assertEquals(scheduleId, subject.toGrpcScheduleId());
 	}
 }

@@ -10,7 +10,7 @@
   <parent>
     <groupId>com.hedera.hashgraph</groupId>
     <artifactId>hedera-services</artifactId>
-    <version>0.10.1-SNAPSHOT</version>
+    <version>0.11.0-alpha.3</version>
   </parent>
 
   <properties>
@@ -21,8 +21,6 @@
     <app.name>HederaNode</app.name>
     <mainClass.name>ServicesMain</mainClass.name>
 
-    <app.repo>${project.baseUri}/data/repos/app/</app.repo>
-
     <asm.version>6.2</asm.version>
     <git-commit-id.version>2.2.4</git-commit-id.version>
     <ant-contrib.version>1.0b3</ant-contrib.version>
@@ -30,7 +28,7 @@
 
     <commons-io.version>2.1</commons-io.version>
     <ethereum-core.version>1.12.0-v0.5.0</ethereum-core.version>
-    <swirlds.version>0.7.5</swirlds.version>
+    <swirlds.version>0.8.1</swirlds.version>
   </properties>
 
   <build>
@@ -270,12 +268,12 @@
     <dependency>
       <groupId>com.hedera.hashgraph</groupId>
       <artifactId>hapi-fees</artifactId>
-      <version>0.10.1-SNAPSHOT</version>
+      <version>0.11.0-alpha.3</version>
     </dependency>
     <dependency>
       <groupId>com.hedera.hashgraph</groupId>
       <artifactId>hedera-protobuf-java-api</artifactId>
-      <version>0.10.1-SNAPSHOT</version>
+      <version>0.11.0-alpha.3</version>
     </dependency>
     <dependency>
       <groupId>com.swirlds</groupId>
@@ -290,6 +288,11 @@
     <dependency>
       <groupId>com.swirlds</groupId>
       <artifactId>swirlds-fcqueue</artifactId>
+      <version>${swirlds.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.swirlds</groupId>
+      <artifactId>swirlds-common</artifactId>
       <version>${swirlds.version}</version>
     </dependency>
     <dependency>
@@ -315,60 +318,52 @@
       <artifactId>javax.annotation-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
-      <version>${junit.jupiter.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.vintage</groupId>
       <artifactId>junit-vintage-engine</artifactId>
-      <version>${junit.vintage.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-all</artifactId>
-      <version>${hamcrest-all.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
-      <version>${junit.jupiter.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <version>${junit.jupiter.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.platform</groupId>
       <artifactId>junit-platform-runner</artifactId>
-      <version>${junit.platform.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>${mockito2.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <version>${mockito-junit-jupiter.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
   <repositories>
+    <repository>
+      <id>local-repo-for-swirlds-sdk</id>
+      <url>file:${project.basedir}/localSwirldsSDK</url>
+    </repository>
     <repository>
       <snapshots>
         <enabled>false</enabled>
@@ -376,19 +371,6 @@
       <id>central</id>
       <name>bintray</name>
       <url>https://jcenter.bintray.com</url>
-    </repository>
-    <repository>
-      <id>app.repo</id>
-      <name>app</name>
-      <url>${app.repo}</url>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-      </snapshots>
     </repository>
     <repository>
       <id>Ethereum</id>

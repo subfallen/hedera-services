@@ -24,8 +24,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 
 import java.io.IOException;
 import java.util.Map;
@@ -37,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.BDDMockito.*;
 
-@RunWith(JUnitPlatform.class)
 class BootstrapPropertiesTest {
 	BootstrapProperties subject = new BootstrapProperties();
 
@@ -80,6 +77,7 @@ class BootstrapPropertiesTest {
 			entry("accounts.systemUndeleteAdmin", 60L),
 			entry("accounts.treasury", 2L),
 			entry("contracts.defaultLifetime", 7890000L),
+			entry("contracts.localCall.estRetBytes", 32),
 			entry("contracts.maxGas", 300000),
 			entry("contracts.maxStorageKb", 1024),
 			entry("files.addressBook", 101L),
@@ -95,6 +93,10 @@ class BootstrapPropertiesTest {
 			entry("hedera.numReservedSystemEntities", 1_000L),
 			entry("hedera.profiles.active", Profile.PROD),
 			entry("hedera.realm", 0L),
+			entry("hedera.recordStream.logDir", "/opt/hgcapp/recordStreams"),
+			entry("hedera.recordStream.logPeriod", 2L),
+			entry("hedera.recordStream.isEnabled", true),
+			entry("hedera.recordStream.queueCapacity", 5000),
 			entry("hedera.shard", 0L),
 			entry("hedera.transaction.maxMemoUtf8Bytes", 100),
 			entry("hedera.transaction.minValidDuration", 15L),
@@ -107,6 +109,9 @@ class BootstrapPropertiesTest {
 			entry("ledger.transfers.maxLen", 10),
 			entry("ledger.tokenTransfers.maxLen", 10),
 			entry("ledger.totalTinyBarFloat", 5000000000000000000L),
+			entry("ledger.autoRenewPeriod.maxDuration", 8000001L),
+			entry("ledger.autoRenewPeriod.minDuration", 6999999L),
+			entry("ledger.schedule.txExpiryTimeSecs", 1800),
 			entry("precheck.account.maxLookupRetries", 10),
 			entry("precheck.account.lookupRetryBackoffIncrementMs", 10),
 			entry("tokens.maxPerAccount", 1_000),

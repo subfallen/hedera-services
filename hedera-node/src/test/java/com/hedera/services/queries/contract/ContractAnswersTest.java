@@ -23,26 +23,32 @@ package com.hedera.services.queries.contract;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 import static org.mockito.BDDMockito.*;
 
-@RunWith(JUnitPlatform.class)
 class ContractAnswersTest {
 	GetBytecodeAnswer getBytecodeAnswer = mock(GetBytecodeAnswer.class);
 	GetContractInfoAnswer getContractInfoAnswer = mock(GetContractInfoAnswer.class);
 	GetContractRecordsAnswer getContractRecordsAnswer = mock(GetContractRecordsAnswer.class);
+	ContractCallLocalAnswer contractCallLocalAnswer = mock(ContractCallLocalAnswer.class);
+	GetBySolidityIdAnswer getBySolidityIdAnswer = mock(GetBySolidityIdAnswer.class);
 
 	ContractAnswers subject;
 
 	@Test
 	public void hasExpectedAnswers() {
 		// given:
-		subject = new ContractAnswers(getBytecodeAnswer, getContractInfoAnswer, getContractRecordsAnswer);
+		subject = new ContractAnswers(
+				getBytecodeAnswer,
+				getContractInfoAnswer,
+				getBySolidityIdAnswer,
+				getContractRecordsAnswer,
+				contractCallLocalAnswer);
 
 		// then:
 		assertSame(getBytecodeAnswer, subject.getBytecode());
 		assertSame(getContractInfoAnswer, subject.getContractInfo());
 		assertSame(getContractRecordsAnswer, subject.getContractRecords());
+		assertSame(contractCallLocalAnswer, subject.contractCallLocal());
+		assertSame(getBySolidityIdAnswer, subject.getBySolidityId());
 	}
 }

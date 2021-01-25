@@ -25,22 +25,20 @@ import com.hederahashgraph.api.proto.java.AccountID;
 import com.hederahashgraph.api.proto.java.ContractID;
 import com.hederahashgraph.api.proto.java.FileID;
 import com.hederahashgraph.api.proto.java.ResponseCodeEnum;
+import com.hederahashgraph.api.proto.java.ScheduleID;
 import com.hederahashgraph.api.proto.java.TokenID;
 import com.hederahashgraph.api.proto.java.TopicID;
 import com.hederahashgraph.api.proto.java.TransactionID;
 import com.hedera.services.legacy.crypto.SignatureStatus;
 import com.hedera.services.legacy.crypto.SignatureStatusCode;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static com.hedera.test.utils.IdUtils.*;
 
-@RunWith(JUnitPlatform.class)
 public class SigStatusOrderResultFactoryTest {
 	private SigStatusOrderResultFactory subject;
 	private boolean inHandleTxnDynamicContext = true;
@@ -184,6 +182,23 @@ public class SigStatusOrderResultFactoryTest {
 		// given:
 		subject = new SigStatusOrderResultFactory(inHandleTxnDynamicContext);
 		SigningOrderResult<SignatureStatus> summary = subject.forMissingToken(missing, txnId);
+		SignatureStatus error = summary.getErrorReport();
+
+		// expect:
+		assertEquals(expectedError.toLogMessage(), error.toLogMessage());
+	}
+
+	@Test
+	public void reportsMissingSchedule() {
+		// setup:
+		ScheduleID missing = IdUtils.asSchedule("1.2.3");
+		SignatureStatus expectedError = new SignatureStatus(
+				SignatureStatusCode.INVALID_SCHEDULE_ID, ResponseCodeEnum.INVALID_SCHEDULE_ID,
+				inHandleTxnDynamicContext, txnId, missing);
+
+		// given:
+		subject = new SigStatusOrderResultFactory(inHandleTxnDynamicContext);
+		SigningOrderResult<SignatureStatus> summary = subject.forMissingSchedule(missing, txnId);
 		SignatureStatus error = summary.getErrorReport();
 
 		// expect:

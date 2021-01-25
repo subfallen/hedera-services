@@ -24,8 +24,6 @@ import com.hedera.services.config.HederaNumbers;
 import com.hederahashgraph.api.proto.java.AccountID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -33,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
-@RunWith(JUnitPlatform.class)
 class GlobalDynamicPropertiesTest {
 	static final String[] balanceExportPaths = new String[] {
 			"/opt/hgcapp/accountBalances",
@@ -84,6 +81,10 @@ class GlobalDynamicPropertiesTest {
 		assertEquals(21, subject.maxGas());
 		assertEquals(22L, subject.defaultContractLifetime());
 		assertEquals(23, subject.feesTokenTransferUsageMultiplier());
+		assertEquals(24, subject.maxAutoRenewDuration());
+		assertEquals(25, subject.minAutoRenewDuration());
+		assertEquals(26, subject.localCallEstRetBytes());
+		assertEquals(27, subject.scheduledTxExpiryTimeSecs());
 	}
 
 	@Test
@@ -117,6 +118,10 @@ class GlobalDynamicPropertiesTest {
 		assertEquals(22, subject.maxGas());
 		assertEquals(23L, subject.defaultContractLifetime());
 		assertEquals(24, subject.feesTokenTransferUsageMultiplier());
+		assertEquals(25, subject.maxAutoRenewDuration());
+		assertEquals(26, subject.minAutoRenewDuration());
+		assertEquals(27, subject.localCallEstRetBytes());
+		assertEquals(28, subject.scheduledTxExpiryTimeSecs());
 	}
 
 	private void givenPropsWithSeed(int i) {
@@ -143,6 +148,10 @@ class GlobalDynamicPropertiesTest {
 		given(properties.getIntProperty("contracts.maxGas")).willReturn(i + 20);
 		given(properties.getLongProperty("contracts.defaultLifetime")).willReturn(i + 21L);
 		given(properties.getIntProperty("fees.tokenTransferUsageMultiplier")).willReturn(i + 22);
+		given(properties.getLongProperty("ledger.autoRenewPeriod.maxDuration")).willReturn(i + 23L);
+		given(properties.getLongProperty("ledger.autoRenewPeriod.minDuration")).willReturn(i + 24L);
+		given(properties.getIntProperty("contracts.localCall.estRetBytes")).willReturn(i + 25);
+		given(properties.getIntProperty("ledger.schedule.txExpiryTimeSecs")).willReturn(i + 26);
 	}
 
 	private AccountID accountWith(long shard, long realm, long num) {

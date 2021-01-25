@@ -35,7 +35,8 @@ import com.hedera.services.sigs.metadata.TopicSigningMetadata;
 import com.hedera.services.sigs.metadata.lookups.ContractSigMetaLookup;
 import com.hedera.services.sigs.metadata.DelegatingSigMetadataLookup;
 import com.hedera.services.sigs.metadata.SigMetadataLookup;
-import com.hedera.services.tokens.TokenStore;
+import com.hedera.services.store.schedule.ScheduleStore;
+import com.hedera.services.store.tokens.TokenStore;
 import com.hedera.test.factories.scenarios.TxnHandlingScenario;
 import com.hederahashgraph.api.proto.java.AccountID;
 import com.hederahashgraph.api.proto.java.ContractID;
@@ -50,7 +51,6 @@ import com.hedera.services.legacy.core.jproto.JKey;
 import com.hedera.services.legacy.crypto.SignatureStatus;
 import com.swirlds.fcmap.FCMap;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
 import static com.hedera.services.sigs.metadata.DelegatingSigMetadataLookup.defaultLookupsFor;
 import static com.hedera.test.factories.scenarios.ConsensusDeleteTopicScenarios.CONSENSUS_DELETE_TOPIC_MISSING_TOPIC_SCENARIO;
 import static com.hedera.test.factories.scenarios.ConsensusDeleteTopicScenarios.CONSENSUS_DELETE_TOPIC_SCENARIO;
@@ -58,7 +58,6 @@ import static com.hedera.test.factories.scenarios.ConsensusSubmitMessageScenario
 import static com.hedera.test.factories.scenarios.ConsensusUpdateTopicScenarios.*;
 import static com.hedera.test.factories.txns.ConsensusCreateTopicFactory.SIMPLE_TOPIC_ADMIN_KEY;
 import static java.util.stream.Collectors.toList;
-import org.junit.runner.RunWith;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiPredicate;
@@ -71,6 +70,7 @@ import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static com.hedera.test.utils.IdUtils.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -89,6 +89,9 @@ import static com.hedera.test.factories.scenarios.FileDeleteScenarios.*;
 import static com.hedera.test.factories.scenarios.ContractCreateScenarios.*;
 import static com.hedera.test.factories.scenarios.ContractUpdateScenarios.*;
 import static com.hedera.test.factories.scenarios.ContractDeleteScenarios.*;
+import static com.hedera.test.factories.scenarios.ScheduleCreateScenarios.*;
+import static com.hedera.test.factories.scenarios.ScheduleSignScenarios.*;
+import static com.hedera.test.factories.scenarios.ScheduleDeleteScenarios.*;
 import static com.hedera.test.factories.scenarios.SystemDeleteScenarios.*;
 import static com.hedera.test.factories.scenarios.SystemUndeleteScenarios.*;
 import static com.hedera.test.factories.scenarios.ConsensusCreateTopicScenarios.*;
@@ -107,7 +110,6 @@ import static com.hedera.test.factories.scenarios.TokenDissociateScenarios.*;
 import static com.hedera.test.factories.txns.SignedTxnFactory.DEFAULT_PAYER_ID;
 import static com.hedera.test.factories.txns.SignedTxnFactory.DEFAULT_PAYER_KT;
 
-@RunWith(JUnitPlatform.class)
 public class HederaSigningOrderTest {
 	private static class TopicAdapter {
 		public static TopicSigMetaLookup with(ThrowingTopicLookup delegate) {
@@ -210,6 +212,7 @@ public class HederaSigningOrderTest {
 				AccountAdapter.withSafe(id -> SafeLookupResult.failure(KeyOrderingFailure.MISSING_FILE)),
 				contractSigMetaLookup,
 				TopicAdapter.withSafe(id -> SafeLookupResult.failure(KeyOrderingFailure.MISSING_FILE)),
+				id -> null,
 				id -> null);
 	private static final SigMetadataLookup EXCEPTION_THROWING_LOOKUP = EXC_LOOKUP_FN.apply(
 			ContractAdapter.withSafe(id -> SafeLookupResult.failure(KeyOrderingFailure.INVALID_CONTRACT))
@@ -223,6 +226,7 @@ public class HederaSigningOrderTest {
 
 	private HederaFs hfs;
 	private TokenStore tokenStore;
+	private ScheduleStore scheduleStore;
 	private TransactionBody txn;
 	private HederaSigningOrder subject;
 	private FCMap<MerkleEntityId, MerkleAccount> accounts;
@@ -336,7 +340,8 @@ public class HederaSigningOrderTest {
 						AccountAdapter.withSafe(id -> SafeLookupResult.failure(KeyOrderingFailure.MISSING_FILE)),
 						ContractAdapter.withSafe(id -> SafeLookupResult.failure(KeyOrderingFailure.INVALID_CONTRACT)),
 						TopicAdapter.with(id -> { throw new Exception(); }),
-						id -> null ));
+						id -> null,
+						id -> null));
 		aMockSummaryFactory();
 		// and:
 		SigningOrderResult<SignatureStatus> result = mock(SigningOrderResult.class);
@@ -1662,6 +1667,93 @@ public class HederaSigningOrderTest {
 		assertEquals(SignatureStatusCode.INVALID_AUTO_RENEW_ACCOUNT_ID, summary.getErrorReport().getStatusCode());
 	}
 
+	@Test
+	public void getsScheduleCreateAdminKeyOnly() throws Throwable {
+		// given:
+		setupFor(SCHEDULE_CREATE_MISSING_ADMIN);
+
+		// when:
+		var summary = subject.keysForOtherParties(txn, summaryFactory);
+		// then:
+		assertTrue(summary.getOrderedKeys().isEmpty());
+	}
+
+	@Test
+	public void getsScheduleCreateNoAdmin() throws Throwable {
+		// given:
+		setupFor(SCHEDULE_CREATE_WITH_ADMIN);
+
+		// when:
+		var summary = subject.keysForOtherParties(txn, summaryFactory);
+
+		// then:
+		assertThat(
+				sanityRestored(summary.getOrderedKeys()),
+				contains(SCHEDULE_ADMIN_KT.asKey()));
+	}
+
+	@Test
+	public void getsScheduleSignKnownSchedule() throws Throwable {
+		// given:
+		setupFor(SCHEDULE_SIGN_KNOWN_SCHEDULE);
+
+		// when:
+		var summary = subject.keysForOtherParties(txn, summaryFactory);
+		// then:
+		assertTrue(summary.getOrderedKeys().isEmpty());
+	}
+
+	@Test
+	public void getsScheduleSignWithMissingSchedule() throws Throwable {
+		// given:
+		setupFor(SCHEDULE_SIGN_MISSING_SCHEDULE);
+
+		// when:
+		var summary = subject.keysForOtherParties(txn, summaryFactory);
+
+		// then:
+		assertTrue(summary.getOrderedKeys().isEmpty());
+		assertEquals(SignatureStatusCode.INVALID_SCHEDULE_ID, summary.getErrorReport().getStatusCode());
+	}
+
+	@Test
+	public void getsScheduleDeleteWithMissingSchedule() throws Throwable {
+		// given:
+		setupFor(SCHEDULE_DELETE_WITH_MISSING_SCHEDULE);
+
+		// when:
+		var summary = subject.keysForOtherParties(txn, summaryFactory);
+
+		// then:
+		assertTrue(summary.getOrderedKeys().isEmpty());
+		assertEquals(SignatureStatusCode.INVALID_SCHEDULE_ID, summary.getErrorReport().getStatusCode());
+	}
+
+	@Test
+	public void getsScheduleDeleteWithMissingAdminKey() throws Throwable {
+		// given:
+		setupFor(SCHEDULE_DELETE_WITH_MISSING_SCHEDULE_ADMIN_KEY);
+
+		// when:
+		var summary = subject.keysForOtherParties(txn, summaryFactory);
+
+		// then:
+		assertTrue(summary.getOrderedKeys().isEmpty());
+	}
+
+	@Test
+	public void getsScheduleDeleteKnownSchedule() throws Throwable {
+		// given:
+		setupFor(SCHEDULE_DELETE_WITH_KNOWN_SCHEDULE);
+
+		// when:
+		var summary = subject.keysForOtherParties(txn, summaryFactory);
+		// then:
+		assertThat(
+				sanityRestored(summary.getOrderedKeys()),
+				contains(SCHEDULE_ADMIN_KT.asKey()));
+	}
+
 	private void setupFor(TxnHandlingScenario scenario) throws Throwable {
 		setupFor(scenario, WACL_ALWAYS_SIGNS);
 	}
@@ -1701,6 +1793,7 @@ public class HederaSigningOrderTest {
 		accounts = scenario.accounts();
 		topics = scenario.topics();
 		tokenStore = scenario.tokenStore();
+		scheduleStore = scenario.scheduleStore();
 
 		subject = new HederaSigningOrder(
 				new MockEntityNumbers(),
@@ -1709,7 +1802,8 @@ public class HederaSigningOrderTest {
 								hfs,
 								() -> accounts,
 								() -> topics,
-								SigMetadataLookup.REF_LOOKUP_FACTORY.apply(tokenStore))),
+								SigMetadataLookup.REF_LOOKUP_FACTORY.apply(tokenStore),
+								SigMetadataLookup.SCHEDULE_REF_LOOKUP_FACTORY.apply(scheduleStore))),
 				updateAccountSigns,
 				waclSigns);
 	}
@@ -1741,6 +1835,7 @@ public class HederaSigningOrderTest {
 						return SafeLookupResult.failure(KeyOrderingFailure.INVALID_TOPIC);
 					}
 				}),
+				id -> null,
 				id -> null
 		);
 	}

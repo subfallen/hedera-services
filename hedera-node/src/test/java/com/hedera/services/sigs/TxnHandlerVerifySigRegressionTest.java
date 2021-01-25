@@ -57,8 +57,6 @@ import com.swirlds.common.PlatformStatus;
 import com.swirlds.common.crypto.engine.CryptoEngine;
 import com.swirlds.fcmap.FCMap;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
@@ -87,7 +85,6 @@ import static org.mockito.BDDMockito.anyInt;
 import static org.mockito.BDDMockito.mock;
 import static org.mockito.BDDMockito.verify;
 
-@RunWith(JUnitPlatform.class)
 public class TxnHandlerVerifySigRegressionTest {
 	private SyncVerifier syncVerifier;
 	private PrecheckKeyReqs precheckKeyReqs;
@@ -123,8 +120,6 @@ public class TxnHandlerVerifySigRegressionTest {
 				() -> accounts,
 				DEFAULT_NODE,
 				null,
-				TEST_USAGE_PRICES,
-				TestExchangeRates.TEST_EXCHANGE,
 				TestFeesFactory.FEES_FACTORY.get(),
 				() -> new StateView(StateView.EMPTY_TOPICS_SUPPLIER, () -> accounts, propertySource, null),
 				new BasicPrecheck(TestContextValidator.TEST_VALIDATOR, new MockGlobalDynamicProps()),
@@ -250,14 +245,14 @@ public class TxnHandlerVerifySigRegressionTest {
 		speedometers = mock(MiscSpeedometers.class);
 		keyOrder = new HederaSigningOrder(
 				new MockEntityNumbers(),
-				defaultLookupsFor(null, () -> accounts, () -> null, ref -> null),
+				defaultLookupsFor(null, () -> accounts, () -> null, ref -> null, ref -> null),
 				updateAccountSigns,
 				targetWaclSigns);
 		retryingKeyOrder =
 				new HederaSigningOrder(
 						new MockEntityNumbers(),
 						defaultLookupsPlusAccountRetriesFor(
-								null, () -> accounts, () -> null, ref -> null,
+								null, () -> accounts, () -> null, ref -> null, ref -> null,
 								MN, MN, runningAvgs, speedometers),
 						updateAccountSigns,
 						targetWaclSigns);

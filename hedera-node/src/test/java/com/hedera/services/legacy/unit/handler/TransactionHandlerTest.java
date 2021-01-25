@@ -45,8 +45,6 @@ import com.swirlds.common.Platform;
 import com.swirlds.common.PlatformStatus;
 import com.swirlds.fcmap.FCMap;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 
 import java.util.function.Supplier;
 
@@ -54,7 +52,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-@RunWith(JUnitPlatform.class)
 public class TransactionHandlerTest {
 	private Platform platform;
 	private Transaction request;
@@ -103,8 +100,6 @@ public class TransactionHandlerTest {
 				() -> accounts,
 				nodeAccount,
 				txnThrottling,
-				usagePrices,
-				exchange,
 				fees,
 				stateView,
 				basicPrecheck,
