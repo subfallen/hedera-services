@@ -13,7 +13,17 @@ GitHub repository.
 
 ## Preliminaries
 
-We must prepare our _~/.m2/settings.xml_ with appropriate credentials 
+### GPG 
+
+You need to have installed GPG as described in the Maven Central
+documentation [here](https://central.sonatype.org/pages/working-with-pgp-signatures.html).
+Be sure in particular to perform the step under "Distributing Your Public Key",
+since if this is not done, a time-consuming step later will have to be
+repeated.
+
+### Maven 
+
+You should prepare your _~/.m2/settings.xml_ with appropriate credentials 
 and properties.
 
 ```
@@ -50,10 +60,19 @@ and properties.
 
 ## Creating a release branch
 
-This step should be performed from `master`, and hence requires
-admin privileges for the Hedera Services GitHub repository. It
-creates a branch named `release/[MAJOR_VERSION].[MINOR_VERSION]`.
-Releases candidates will be tagged from this branch.
+To perform the next step from `master` requires admin privileges 
+for the Hedera Services GitHub repository. It is therefore 
+preferable to create a temporary branch off `master`, say 
+`release090root`, and work from there.
+```
+$ git checkout master
+$ git checkout -b release090root
+$ git push -u origin release090root
+```
+
+We now use the Release Plugin automation to create a branch named 
+`release/[MAJOR_VERSION].[MINOR_VERSION]`. Releases candidates will 
+be tagged from this branch.
 
 For illustration, suppose we are create the release branch for
 `v0.9` candidates. Then,
@@ -80,11 +99,23 @@ default editor:
     <img src="./amend-with-signoff.png"/>
 </p>
 
+## Hacking the build (FIXME)
+
+Before tagging a release candidates it is unfortunately necessary
+to comment out the `<phase>package</phase>` element in the 
+`suite-runner-jar` execution of the Assembly Plugin. If this is 
+left in, _again_ the Release Plugin will fail at almost the very 
+last moment.
+
+**NOTE:** After tagging, and preparing for regression, it is then necessary
+to restore the `<phase>package</phase>` element, since JRS relies
+on that binding to build the _SuiteRunner.jar_.
+
 ## Creating a release candidate
 
 When it is time to create a release candidate, switch to the
-release branch, for example `release/0.9` as above, and then 
-prepare for the next release:
+branch created by the Release Plugin, for example `release/0.9` as 
+above, and then prepare for the next release:
 ```
 $ git checkout release/0.9
 $ mvn release:prepare
