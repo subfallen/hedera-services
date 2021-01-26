@@ -1279,7 +1279,7 @@ workflows:
   GCP-Daily-Services-Comp-Restart-Performance-Hotspot-6N-6C:
     triggers:
       - schedule:
-          cron: "55 15 * * *"
+          cron: "12 17 * * *"
           filters:
             branches:
               only:
