@@ -1235,7 +1235,7 @@ workflows:
   AWS-Daily-Services-Comp-Restart-Performance-Hotspot-6N-6C:
     triggers:
       - schedule:
-          cron: "0 1 * * *"
+          cron: "16 1 * * *"
           filters:
             branches:
               only:
@@ -1257,7 +1257,7 @@ workflows:
   AWS-Daily-Services-Comp-Restart-Performance-Random-6N-6C:
     triggers:
       - schedule:
-          cron: "0 1 * * *"
+          cron: "18 1 * * *"
           filters:
             branches:
               only:
@@ -1279,7 +1279,7 @@ workflows:
   GCP-Daily-Services-Comp-Restart-Performance-Hotspot-6N-6C:
     triggers:
       - schedule:
-          cron: "10 1 * * *"
+          cron: "25 1 * * *"
           filters:
             branches:
               only:
@@ -1301,7 +1301,7 @@ workflows:
   GCP-Daily-Services-Comp-Restart-Performance-Random-6N-6C:
     triggers:
       - schedule:
-          cron: "0 1 * * *"
+          cron: "20 1 * * *"
           filters:
             branches:
               only:
@@ -2251,7 +2251,7 @@ jobs:
             cd /swirlds-platform;
             sed -i -e 's/github.com/services-jrs-regression/g' .gitmodules;
             git submodule update --init --recursive --checkout;
-            cd regression; 764-D-modify-basic-perf-tests;
+            cd regression; git checkout 764-D-modify-basic-perf-tests;
             cd ..;
             mvn --no-transfer-progress clean install -DskipTests;
 
