@@ -1231,14 +1231,16 @@ workflows:
                 at: /
           workflow-name: "GCP-Daily-Services-Recovery-4N-1C"
 
-  AWS-Daily-Services-Comp-Restart-Performance-Random-4N-4C:
+
+  AWS-Daily-Services-Comp-Restart-Performance-Hotspot-6N-6C:
     triggers:
       - schedule:
-          cron: "6 17 * * *"
+          cron: "0 1 * * *"
           filters:
             branches:
               only:
-                - Disable-master
+                # - Disabled-master
+                - 764-D-modify-basic-perf-tests
     jobs:
       - build-platform-and-services
       - run-performance-regression:
@@ -1249,17 +1251,18 @@ workflows:
             - install-tools
             - attach_workspace:
                 at: /
-          workflow-name: "AWS-Daily-Services-Comp-Restart-Performance-Random-4N-4C"
-          test-name: "AWS-Daily-Services-Comp-Restart-Performance-Random-4N-4C.json"
+          workflow-name: "AWS-Daily-Services-Comp-Restart-Performance-Hotspot-6N-6C"
+          test-name: "AWS-Daily-Services-Comp-Restart-Performance-Hotspot-6N-6C.json"
 
-  GCP-Daily-Services-Comp-Restart-Performance-Hotspot-4N-4C:
+  AWS-Daily-Services-Comp-Restart-Performance-Random-6N-6C:
     triggers:
       - schedule:
-          cron: "35 6 * * *"
+          cron: "0 1 * * *"
           filters:
             branches:
               only:
-                - master
+                # - Disabled-master
+                - 764-D-modify-basic-perf-tests
     jobs:
       - build-platform-and-services
       - run-performance-regression:
@@ -1270,164 +1273,18 @@ workflows:
             - install-tools
             - attach_workspace:
                 at: /
-          workflow-name: "GCP-Daily-Services-Comp-Restart-Performance-Hotspot-4N-4C"
-          test-name: "GCP-Daily-Services-Comp-Restart-Performance-Hotspot-4N-4C"
+          workflow-name: "AWS-Daily-Services-Comp-Restart-Performance-Random-6N-6C"
+          test-name: "AWS-Daily-Services-Comp-Restart-Performance-Random-6N-6C.json"
 
-  GCP-Daily-Services-Comp-Restart-Performance-Random-4N-4C:
+  GCP-Daily-Services-Comp-Restart-Performance-Hotspot-6N-6C:
     triggers:
       - schedule:
-          cron: "30 4 * * *"
+          cron: "10 1 * * *"
           filters:
             branches:
               only:
-                - master
-    jobs:
-      - build-platform-and-services
-      - run-performance-regression:
-          context: Slack
-          requires:
-            - build-platform-and-services
-          pre-steps:
-            - install-tools
-            - attach_workspace:
-                at: /
-          workflow-name: "GCP-Daily-Services-Comp-Restart-Performance-Random-4N-4C"
-          test-name: "GCP-Daily-Services-Comp-Restart-Performance-Random-4N-4C.json"
-
-  AWS-Daily-Services-Comp-Restart-HCS-Performance-Random-4N-4C:
-    triggers:
-      - schedule:
-          cron: "30 4 * * *"
-          filters:
-            branches:
-              only:
-                - Disable-master
-
-    jobs:
-      - build-platform-and-services
-      - run-performance-regression:
-          context: Slack
-          requires:
-            - build-platform-and-services
-          pre-steps:
-            - install-tools
-            - attach_workspace:
-                at: /
-          workflow-name: "AWS-Daily-Services-Comp-Restart-HCS-Performance-Random-4N-4C"
-          test-name: "AWS-Daily-Services-Comp-Restart-HCS-Performance-Random-4N-4C.json"
-
-  GCP-Daily-Services-Comp-Restart-HCS-Performance-Random-4N-4C:
-    triggers:
-      - schedule:
-          cron: "30 4 * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - build-platform-and-services
-      - run-performance-regression:
-          context: Slack
-          requires:
-            - build-platform-and-services
-          pre-steps:
-            - install-tools
-            - attach_workspace:
-                at: /
-          workflow-name: "GCP-Daily-Services-Comp-Restart-HCS-Performance-Random-4N-4C"
-          test-name: "GCP-Daily-Services-Comp-Restart-HCS-Performance-Random-4N-4C.json"
-
-  GCP-Daily-Services-Comp-Restart-HCS-Performance-Hotspot-4N-4C:
-    triggers:
-      - schedule:
-          cron: "30 10 * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - build-platform-and-services
-      - run-performance-regression:
-          context: Slack
-          requires:
-            - build-platform-and-services
-          pre-steps:
-            - install-tools
-            - attach_workspace:
-                at: /
-          workflow-name: "GCP-Daily-Services-Comp-Restart-HCS-Performance-Hotspot-4N-4C"
-          test-name: "GCP-Daily-Services-Comp-Restart-HCS-Performance-Hotspot-4N-4C"
-
-  AWS-Daily-Services-Comp-Restart-Performance-6N-6C:
-    triggers:
-      - schedule:
-          cron: "30 6 * * *"
-          filters:
-            branches:
-              only:
-                - Disable-master
-    jobs:
-      - build-platform-and-services
-      - run-start-from-saved-state-regression:
-          context: Slack
-          requires:
-            - build-platform-and-services
-          pre-steps:
-            - install-tools
-            - attach_workspace:
-                at: /
-          workflow-name: "AWS-Daily-Services-Comp-Restart-Performance-6N-6C"
-          test-name: "AWS-Daily-Services-Comp-Restart-Performance-6N-6C.json"
-
-  GCP-Daily-Services-Comp-Restart-Performance-6N-6C:
-    triggers:
-      - schedule:
-          cron: "35 6 * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - build-platform-and-services
-      - run-start-from-saved-state-regression:
-          context: Slack
-          requires:
-            - build-platform-and-services
-          pre-steps:
-            - install-tools
-            - attach_workspace:
-                at: /
-          workflow-name: "GCP-Daily-Services-Comp-Restart-Performance-6N-6C"
-
-  AWS-Daily-Services-Comp-Restart-HTS-Performance-6N-6C:
-    triggers:
-      - schedule:
-          cron: "30 4 * * *"
-          filters:
-            branches:
-              only:
-                - Disable-master
-    jobs:
-      - build-platform-and-services
-      - run-start-from-saved-state-regression:
-          context: Slack
-          requires:
-            - build-platform-and-services
-          pre-steps:
-            - install-tools
-            - attach_workspace:
-                at: /
-          workflow-name: "AWS-Daily-Services-Comp-Restart-HTS-Performance-6N-6C"
-          test-name: "AWS-Daily-Services-Comp-Restart-HTS-Performance-6N-6C.json"
-
-  GCP-Daily-Services-Comp-Restart-HTS-Performance-6N-6C:
-    triggers:
-      - schedule:
-          cron: "39 0 * * *"
-          filters:
-            branches:
-              only:
-                - master
+#                - master
+                - 764-D-modify-basic-perf-tests
 
     jobs:
       - build-platform-and-services
@@ -1439,8 +1296,31 @@ workflows:
             - install-tools
             - attach_workspace:
                 at: /
-          workflow-name: "GCP-Daily-Services-Comp-Restart-HTS-Performance-6N-6C"
-          test-name: "GCP-Daily-Services-Comp-Restart-HTS-Performance-6N-6C.json"
+          workflow-name: "GCP-Daily-Services-Comp-Restart-Performance-Hotspot-6N-6C"
+
+  GCP-Daily-Services-Comp-Restart-Performance-Random-6N-6C:
+    triggers:
+      - schedule:
+          cron: "0 1 * * *"
+          filters:
+            branches:
+              only:
+#                - master
+                - 764-D-modify-basic-perf-tests
+
+    jobs:
+      - build-platform-and-services
+      - run-start-from-saved-state-regression:
+          context: Slack
+          requires:
+            - build-platform-and-services
+          pre-steps:
+            - install-tools
+            - attach_workspace:
+                at: /
+          workflow-name: "GCP-Daily-Services-Comp-Restart-Performance-Random-6N-6C"
+          test-name: "GCP-Daily-Services-Comp-Restart-Performance-Random-6N-6C.json"
+
 
   AWS-Daily-Services-Comp-Reconnect-4N-1C:
     triggers:
@@ -1753,6 +1633,7 @@ workflows:
               branches:
                 ignore:
                   - /.*-PERF/
+                  - 764-D-modify-basic-perf-tests
             workflow-name: "Continuous integration GCP"
 
         - run-continuous-integration-gcp:
@@ -1779,6 +1660,7 @@ workflows:
               ignore:
                 - /.*-PERF/
                 - /.*-REGRESSION/
+                - 764-D-modify-basic-perf-tests
           workflow-name: "Continuous integration"
       - start-singlejob-testnet:
           context: Slack
@@ -2030,7 +1912,7 @@ jobs:
         default: ""
       test-name:
         type: string
-        default: "GCP-Daily-Services-Comp-Restart-Performance-Random-4N-4C.json"
+        default: "GCP-Daily-Services-Comp-Restart-Performance-Hotspot-6N-6C.json"
     executor:
       name: build-executor
       workflow-name:  << parameters.workflow-name >>
@@ -2039,11 +1921,11 @@ jobs:
           experiment-name: << parameters.test-name >>
 
       - run:
-          name: Sync results of performance regression to AWS
+          name: Sync results of performance regression to Cloud
           command: |
-            cd /swirlds-platform/regression/results/4N_4C/Performance/; find . -type d -name data -prune -exec rm -rf {} \;
-            aws s3 sync /swirlds-platform/regression/results/4N_4C/Performance/ s3://hedera-service-regression-jrs;
-            tar -czvf /results.tar.gz  /swirlds-platform/regression/results/4N_4C/Performance/*
+            cd /swirlds-platform/regression/results/6N_6C/Performance/; find . -type d -name data -prune -exec rm -rf {} \;
+            aws s3 sync /swirlds-platform/regression/results/6N_6C/Performance/ s3://hedera-service-regression-jrs;
+            tar -czvf /results.tar.gz  /swirlds-platform/regression/results/6N_6C/Performance/*
 
       - store_artifacts:
           path: /results.tar.gz
@@ -2369,7 +2251,7 @@ jobs:
             cd /swirlds-platform;
             sed -i -e 's/github.com/services-jrs-regression/g' .gitmodules;
             git submodule update --init --recursive --checkout;
-            cd regression;
+            cd regression; 764-D-modify-basic-perf-tests;
             cd ..;
             mvn --no-transfer-progress clean install -DskipTests;
 
