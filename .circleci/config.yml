@@ -1279,7 +1279,7 @@ workflows:
   GCP-Daily-Services-Comp-Restart-Performance-Hotspot-6N-6C:
     triggers:
       - schedule:
-          cron: "25 1 * * *"
+          cron: "50 1 * * *"
           filters:
             branches:
               only:
@@ -1288,7 +1288,7 @@ workflows:
 
     jobs:
       - build-platform-and-services
-      - run-start-from-saved-state-regression:
+      - run-performance-regression:
           context: Slack
           requires:
             - build-platform-and-services
@@ -1310,7 +1310,7 @@ workflows:
 
     jobs:
       - build-platform-and-services
-      - run-start-from-saved-state-regression:
+      - run-performance-regression:
           context: Slack
           requires:
             - build-platform-and-services
