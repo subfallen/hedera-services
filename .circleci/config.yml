@@ -1239,8 +1239,8 @@ workflows:
           filters:
             branches:
               only:
-                # - Disabled-master
-                - 764-D-modify-basic-perf-tests
+                - Disabled-master
+                - X-764-D-modify-basic-perf-tests
     jobs:
       - build-platform-and-services
       - run-performance-regression:
@@ -1262,7 +1262,7 @@ workflows:
             branches:
               only:
                 # - Disabled-master
-                - 764-D-modify-basic-perf-tests
+                - X-764-D-modify-basic-perf-tests
     jobs:
       - build-platform-and-services
       - run-performance-regression:
@@ -1284,7 +1284,7 @@ workflows:
             branches:
               only:
 #                - master
-                - 764-D-modify-basic-perf-tests
+                - X-764-D-modify-basic-perf-tests
 
     jobs:
       - build-platform-and-services
@@ -1306,7 +1306,7 @@ workflows:
             branches:
               only:
 #                - master
-                - 764-D-modify-basic-perf-tests
+                - X-764-D-modify-basic-perf-tests
 
     jobs:
       - build-platform-and-services
@@ -1633,7 +1633,7 @@ workflows:
               branches:
                 ignore:
                   - /.*-PERF/
-                  - 764-D-modify-basic-perf-tests
+                  - X-764-D-modify-basic-perf-tests
             workflow-name: "Continuous integration GCP"
 
         - run-continuous-integration-gcp:
