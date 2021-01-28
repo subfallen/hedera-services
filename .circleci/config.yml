@@ -1897,6 +1897,11 @@ jobs:
           command: |
             mkdir -p /repo/test-clients/output
       - run:
+          name: Get proto repo
+          command: |
+            /repo/.circleci/scripts/trap-failure-report.sh \
+              '/repo/.circleci/scripts/clone-proto-repo.sh | tee -a /repo/test-clients/output/hapi-client.log'
+      - run:
           name: mvn install
           # use double quote otherwise the backslash of line continuation will be treated as part of mvn parameter
           command: |
@@ -1944,7 +1949,7 @@ jobs:
           paths:
             - repo/.git
             - repo/.circleci
-            - repo/hapiProto
+            - repo/hapi-proto
             - repo/test-clients
             - repo/HapiApp2.0
             - root/.m2
@@ -1966,6 +1971,11 @@ jobs:
           name: prepare log dir
           command: |
             mkdir -p /repo/test-clients/output
+      - run:
+          name: Get proto repo
+          command: |
+            /repo/.circleci/scripts/trap-failure-report.sh \
+              '/repo/.circleci/scripts/clone-proto-repo.sh | tee -a /repo/test-clients/output/hapi-client.log'
       - run:
           name: mvn install
           command: |
@@ -1992,7 +2002,7 @@ jobs:
           paths:
             - repo/.git
             - repo/.circleci
-            - repo/hapiProto
+            - repo/hapi-proto
             - repo/test-clients
             - repo/HapiApp2.0
             - root/.m2

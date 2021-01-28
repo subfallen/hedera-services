@@ -37,6 +37,7 @@ LOG4J_BKUP_FINGERPRINT="${REPO}/.circleci/log4jBackedUp"
 HEDERA_REGRESSION_CHANNEL='CKWHL8R9A'
 JOB_SCOPED_TESTNET_FINGERPRINT="${REPO}/.circleci/jobScopedTestnet"
 CACERTS_STORE_PASS="changeit"
+PROTO_DIR="/hedera-protobuf"
 
 function log_path() {
   echo "$LOG_OUTPUT_DIR/$1"
