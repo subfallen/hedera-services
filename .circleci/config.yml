@@ -2370,7 +2370,7 @@ jobs:
           name: Get proto repo
           command: |
             /repo/.circleci/scripts/trap-failure-report.sh \
-              '/repo/.circleci/scripts/clone-proto-repo.sh | tee -a /repo/test-clients/output/hapi-client.log'
+              '/repo/.circleci/scripts/clone-proto-repo.sh'
       - run:
           name: Build hedera-services repo
           command: |

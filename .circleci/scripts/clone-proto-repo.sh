@@ -17,5 +17,8 @@ else
     git checkout $CIRCLE_BRANCH
   fi
 
+  set +x
+  ls -l $PROTO_DIR/src/main/proto/*.proto
+  ls -l ${REPO}/hapi-proto/src/main/proto/
   mv $PROTO_DIR/src/main/proto/*.proto ${REPO}/hapi-proto/src/main/proto/
 fi
