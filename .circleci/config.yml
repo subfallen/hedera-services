@@ -2367,6 +2367,11 @@ jobs:
             - "e7:a6:3e:34:3e:d8:fe:64:2c:7f:b6:57:45:03:44:ac"
       - checkout
       - run:
+          name: Get proto repo
+          command: |
+            /repo/.circleci/scripts/trap-failure-report.sh \
+              '/repo/.circleci/scripts/clone-proto-repo.sh | tee -a /repo/test-clients/output/hapi-client.log'
+      - run:
           name: Build hedera-services repo
           command: |
                 mvn --no-transfer-progress clean install -DskipTests
