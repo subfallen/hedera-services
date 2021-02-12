@@ -23,6 +23,7 @@ package com.hedera.services.bdd.suites.records;
 import com.hedera.services.bdd.spec.HapiApiSpec;
 import com.hedera.services.bdd.spec.infrastructure.meta.ContractResources;
 import com.hedera.services.bdd.suites.HapiApiSuite;
+import com.hederahashgraph.api.proto.java.ResponseCodeEnum;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,6 +36,7 @@ import static com.hedera.services.bdd.spec.queries.QueryVerbs.*;
 import static com.hedera.services.bdd.spec.assertions.AssertUtils.*;
 import static com.hedera.services.bdd.spec.transactions.TxnVerbs.*;
 import static com.hedera.services.bdd.spec.transactions.crypto.HapiCryptoTransfer.*;
+import static com.hederahashgraph.api.proto.java.ResponseCodeEnum.MEMO_TOO_LONG;
 
 public class RecordCreationSuite extends HapiApiSuite {
 	private static final Logger log = LogManager.getLogger(RecordCreationSuite.class);
@@ -98,7 +100,10 @@ public class RecordCreationSuite extends HapiApiSuite {
 				.given(
 						fileCreate("bytecode").path(ContractResources.PAYABLE_CONTRACT_BYTECODE_PATH)
 				).when(
-						contractCreate("contract").bytecode("bytecode").via("createTxn")
+						contractCreate("contract")
+								.bytecode("bytecode")
+								.via("createTxn")
+								.hasKnownStatus(MEMO_TOO_LONG)
 				).then(
 						getContractRecords("contract").has(inOrder())
 				);
