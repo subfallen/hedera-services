@@ -48,6 +48,7 @@ import org.junit.Assert;
 
 
 import java.io.*;
+import java.nio.file.Paths;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
@@ -64,6 +65,7 @@ import java.util.stream.IntStream;
 
 import static com.hedera.services.bdd.spec.keys.SigControl.ON;
 import static java.util.Map.Entry;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 public class KeyFactory implements Serializable {
@@ -274,8 +276,11 @@ public class KeyFactory implements Serializable {
 	}
 
 	public static KeyPairObj firstStartupKp(HapiSpecSetup setup) throws Exception {
-		if (StringUtils.isNotEmpty(setup.defaultPayerMnemonic())) {
-			return SpecUtils.asLegacyKp(SpecKey.asEd25519Key(setup.defaultPayerMnemonic()));
+		if (StringUtils.isNotEmpty(setup.defaultPayerMnemonicFile())) {
+			var mnemonic = mnemonicFromFile(setup.defaultPayerMnemonicFile());
+			return SpecUtils.asLegacyKp(SpecKey.mnemonicToEd25519Key(mnemonic));
+		} else if (StringUtils.isNotEmpty(setup.defaultPayerMnemonic())) {
+			return SpecUtils.asLegacyKp(SpecKey.mnemonicToEd25519Key(setup.defaultPayerMnemonic()));
 		} else if (StringUtils.isNotEmpty(setup.defaultPayerPemKeyLoc())) {
 			var keyPair = SpecKey.readFirstKp(
 					new File(setup.defaultPayerPemKeyLoc()),
@@ -286,6 +291,14 @@ public class KeyFactory implements Serializable {
 			return firstKpFrom(keyStore, setup.genesisStartupKey());
 		} else {
 			return firstListedKp(setup.startupAccountsPath(), setup.genesisStartupKey());
+		}
+	}
+
+	public static String mnemonicFromFile(String wordsLoc) {
+		try {
+			return java.nio.file.Files.lines(Paths.get(wordsLoc)).collect(joining(" "));
+		} catch (IOException e) {
+		    throw new UncheckedIOException(e);
 		}
 	}
 

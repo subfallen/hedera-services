@@ -24,7 +24,6 @@ import com.google.protobuf.ByteString;
 import com.hedera.services.bdd.spec.HapiApiSpec;
 import com.hedera.services.bdd.spec.infrastructure.HapiSpecRegistry;
 import com.hedera.services.bdd.spec.keys.KeyFactory;
-import com.hedera.services.bdd.spec.keys.KeyShape;
 import com.hedera.services.bdd.spec.keys.SigControl;
 import com.hedera.services.bdd.spec.keys.deterministic.Bip0032;
 import com.hedera.services.bdd.spec.keys.deterministic.Bip0039;
@@ -133,7 +132,7 @@ public class SpecKey {
 				throw new UncheckedIOException(e);
 			}
 		}
-		var cryptoKey = asEd25519Key(mnemonic);
+		var cryptoKey = mnemonicToEd25519Key(mnemonic);
 		var grpcKey = Ed25519Factory.populatedFrom(cryptoKey.getAbyte());
 		forms.completeIntake(spec.registry(), grpcKey);
 		spec.keys().incorporate(
@@ -153,7 +152,7 @@ public class SpecKey {
 		}
 	}
 
-	public static EdDSAPrivateKey asEd25519Key(String mnemonic) {
+	public static EdDSAPrivateKey mnemonicToEd25519Key(String mnemonic) {
 		try {
 			return Ed25519Factory.ed25519From(Bip0032.privateKeyFrom(Bip0032.seedFrom(mnemonic)));
 		} catch (NoSuchAlgorithmException | InvalidKeyException | ShortBufferException e) {

@@ -206,6 +206,9 @@ public class HapiSpecSetup {
 	public String defaultPayerMnemonic() {
 		return props.get("default.payer.mnemonic");
 	}
+	public String defaultPayerMnemonicFile() {
+		return props.get("default.payer.mnemonicFile");
+	}
 	public String defaultPayerPemKeyLoc() {
 		return props.get("default.payer.pemKeyLoc");
 	}
