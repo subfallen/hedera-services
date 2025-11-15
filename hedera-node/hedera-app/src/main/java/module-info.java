@@ -70,6 +70,7 @@ module com.hedera.node.app {
     requires org.apache.commons.lang3;
     requires static transitive com.github.spotbugs.annotations;
     requires static java.compiler;
+    requires com.goterl.lazysodium;
 
     exports com.hedera.node.app;
     exports com.hedera.node.app.state;

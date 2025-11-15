@@ -51,6 +51,10 @@ public class FinalizeRecordHandler extends RecordFinalizerBase {
     private static final Logger logger = LogManager.getLogger(FinalizeRecordHandler.class);
     public static final long LEDGER_TOTAL_TINY_BAR_FLOAT = 5000000000000000000L;
 
+    // <PLEX>
+    public static final AtomicBoolean SKIP_CHILD_RECONCILIATION = new AtomicBoolean(false);
+    // </PLEX>
+
     private final StakingRewardsHandler stakingRewardsHandler;
     private final AccountsConfig accountsConfig;
     private final EntityIdFactory entityIdFactory;
@@ -149,7 +153,7 @@ public class FinalizeRecordHandler extends RecordFinalizerBase {
         // represent the changes for Mint or Wipe of NFTs in the token relation changes.
         final var nftChanges = nftChangesFrom(writableNftStore, writableTokenStore, tokenRelChanges);
 
-        if (context.hasChildOrPrecedingRecords()) {
+        if (context.hasChildOrPrecedingRecords() && !SKIP_CHILD_RECONCILIATION.get()) {
             // All the above changes maps are mutable
             deductChangesFromChildOrPrecedingRecords(context, tokenRelChanges, nftChanges, hbarChanges);
         }

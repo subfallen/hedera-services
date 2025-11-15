@@ -4,6 +4,7 @@ package com.hedera.node.app.workflows.handle.record;
 import static com.hedera.hapi.node.base.HederaFunctionality.NODE_CREATE;
 import static com.hedera.hapi.node.base.ResponseCodeEnum.SUCCESS;
 import static com.hedera.hapi.node.base.ResponseCodeEnum.SUCCESS_BUT_MISSING_EXPECTED_OPERATION;
+import static com.hedera.hapi.node.base.TokenType.FUNGIBLE_COMMON;
 import static com.hedera.hapi.util.HapiUtils.asTimestamp;
 import static com.hedera.node.app.hapi.utils.keys.KeyUtils.IMMUTABILITY_SENTINEL_KEY;
 import static com.hedera.node.app.service.addressbook.impl.schemas.V053AddressBookSchema.parseEd25519NodeAdminKeysFrom;
@@ -27,17 +28,14 @@ import static java.util.Objects.requireNonNull;
 import static org.hiero.consensus.node.NodeUtilities.formatNodeName;
 import static org.hiero.consensus.platformstate.V0540PlatformStateSchema.PLATFORM_STATE_STATE_ID;
 
+import com.goterl.lazysodium.utils.HexMessageEncoder;
 import com.hedera.hapi.node.addressbook.NodeCreateTransactionBody;
 import com.hedera.hapi.node.addressbook.NodeDeleteTransactionBody;
 import com.hedera.hapi.node.addressbook.NodeUpdateTransactionBody;
-import com.hedera.hapi.node.base.AccountID;
-import com.hedera.hapi.node.base.CurrentAndNextFeeSchedule;
-import com.hedera.hapi.node.base.Duration;
-import com.hedera.hapi.node.base.Key;
-import com.hedera.hapi.node.base.ResponseCodeEnum;
-import com.hedera.hapi.node.base.ServiceEndpoint;
-import com.hedera.hapi.node.base.TransactionID;
-import com.hedera.hapi.node.base.TransferList;
+import com.hedera.hapi.node.base.*;
+import com.hedera.hapi.node.consensus.ConsensusCreateTopicTransactionBody;
+import com.hedera.hapi.node.contract.ContractCreateTransactionBody;
+import com.hedera.hapi.node.file.FileCreateTransactionBody;
 import com.hedera.hapi.node.state.common.EntityNumber;
 import com.hedera.hapi.node.state.entity.EntityCounts;
 import com.hedera.hapi.node.state.history.ProofKey;
@@ -46,6 +44,7 @@ import com.hedera.hapi.node.state.token.StakingNodeInfo;
 import com.hedera.hapi.node.token.CryptoCreateTransactionBody;
 import com.hedera.hapi.node.token.CryptoTransferTransactionBody;
 import com.hedera.hapi.node.transaction.NodeStake;
+import com.hedera.hapi.node.token.TokenCreateTransactionBody;
 import com.hedera.hapi.node.transaction.TransactionBody;
 import com.hedera.hapi.node.transaction.TransactionReceipt;
 import com.hedera.hapi.node.tss.LedgerIdNodeContribution;
@@ -64,6 +63,7 @@ import com.hedera.node.app.service.file.impl.FileServiceImpl;
 import com.hedera.node.app.service.file.impl.schemas.V0490FileSchema;
 import com.hedera.node.app.service.token.TokenService;
 import com.hedera.node.app.service.token.impl.BlocklistParser;
+import com.hedera.node.app.service.token.impl.WritableAccountStore;
 import com.hedera.node.app.service.token.impl.WritableStakingInfoStore;
 import com.hedera.node.app.service.token.impl.handlers.staking.EndOfStakingPeriodUtils;
 import com.hedera.node.app.services.ServicesRegistry;
@@ -101,24 +101,23 @@ import com.hedera.pbj.runtime.io.buffer.Bytes;
 import com.swirlds.config.api.Configuration;
 import com.swirlds.platform.system.InitTrigger;
 import com.swirlds.state.State;
+import com.swirlds.state.spi.CommittableWritableStates;
 import com.swirlds.state.spi.WritableSingletonState;
 import com.swirlds.state.spi.WritableStates;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SortedMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -138,7 +137,6 @@ import org.hiero.hapi.support.fees.FeeSchedule;
 @Singleton
 @SuppressWarnings("deprecation")
 public class SystemTransactions {
-
     private static final Logger log = LogManager.getLogger(SystemTransactions.class);
 
     private static final int DEFAULT_GENESIS_WEIGHT = 500;
@@ -411,6 +409,31 @@ public class SystemTransactions {
         final var nodeStakeUpdate = EndOfStakingPeriodUtils.newNodeStakeUpdate(
                 lastInstantOfPreviousPeriodFor(now), nodeStakes, stakingConfig, 0L, 0L, 0L, 0L);
         systemContext.dispatchAdmin(b -> b.memo(END_OF_PERIOD_MEMO).nodeStakeUpdate(nodeStakeUpdate));
+        // --- PLEX ---
+        // Fund the system admin account with 10 billion HBAR from the treasury before creating accounts
+        final var writableEntityStates = state.getWritableStates(EntityIdService.NAME);
+        final var writableTokenStates = state.getWritableStates(TokenService.NAME);
+        final var accountsStore = new WritableAccountStore(writableTokenStates, new WritableEntityIdStoreImpl(writableEntityStates));
+        final long amount = 10_000_000_000L * 100_000_000L;
+        final var treasuryId = AccountID.newBuilder().accountNum(2L).build();
+        final var sysAdminId = AccountID.newBuilder().accountNum(50L).build();
+        final var treasuryAccount = accountsStore.get(treasuryId);
+        final var sysAdminAccount = accountsStore.get(sysAdminId);
+        accountsStore.put(requireNonNull(treasuryAccount).copyBuilder()
+                .tinybarBalance(treasuryAccount.tinybarBalance() - amount)
+                .build());
+        accountsStore.put(requireNonNull(sysAdminAccount).copyBuilder()
+                .tinybarBalance(sysAdminAccount.tinybarBalance() + amount)
+                .build());
+        ((CommittableWritableStates) writableTokenStates).commit();
+        ((CommittableWritableStates) writableEntityStates).commit();
+
+        setupPlexAccounts(systemContext);
+        setupPlexTokens(systemContext);
+        setupPlexTopics(systemContext);
+        setupPlexFeeCollector(systemContext);
+        setupSimpleErc20Initcode(systemContext);
+        setupErc20Tokens(systemContext);
     }
 
     /**
@@ -901,11 +924,12 @@ public class SystemTransactions {
                 if (streamMode != BLOCKS) {
                     blockRecordManager.startUserTransaction(now, state);
                 }
+                final var payerId = body.transactionIDOrThrow().accountIDOrThrow();
                 final var handleOutput = executeSystem(
                         state,
                         now,
                         creatorInfo,
-                        systemAdminId,
+                        payerId,
                         body,
                         entityNum,
                         onSuccess,
@@ -1061,6 +1085,239 @@ public class SystemTransactions {
             return V053AddressBookSchema.parseEd25519NodeAdminKeys(json);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    // --- PLEX ---
+
+    private static final long FIRST_TOKEN_NUM = 20000L;
+    private static final long FIRST_TOPIC_NUM = 30000L;
+
+    private static final String A4589187_PUBLIC_KEY =
+            "ac228a873619e041648113a84f12079b8af8522073adc343e1a91594f0b1c05d";
+    private static final String A4589188_PUBLIC_KEY =
+            "2cfc00272518122e7c080b94fb01dae7b6ac6f0d92e5314d97583b75ac4996c0";
+    private static final String A4589189_PUBLIC_KEY =
+            "77afcb2b3edd975e9df3ceeafba49e9eab1e65949de2c10eb54a4fe695b4c7f8";
+    private static final String A4589190_PUBLIC_KEY =
+            "00239c97975a48b7a9500d30c71f4b6445e73d8b246a8d1a986bb493d50ef0c7";
+    private static final String A4589192_PUBLIC_KEY =
+            "96accd0d08b2a0883d5fa630e53ac8632da6578f1f049544e943bc281ae4e8ac";
+    private static final String A9266133_PUBLIC_KEY =
+            "03ac69bc0610b41fee3b8f66961138e8955685a723ef08d4b1d57a179548ed0cc8";
+    private static final long MASTER_ID = 4589187L;
+    private static final long SIMPLE_ERC20_INITCODE_ID = 1243L;
+    private static final long FEE_COLLECTOR_ID = 1234567L;
+    private static final Key MASTER_KEY =
+            Key.newBuilder().ed25519(Bytes.fromHex(A4589187_PUBLIC_KEY)).build();
+    private static final Map<Long, Key> WELL_KNOWN_KEYS = Map.of(
+            MASTER_ID,
+            MASTER_KEY,
+            4589188L,
+            Key.newBuilder().ed25519(Bytes.fromHex(A4589188_PUBLIC_KEY)).build(),
+            4589189L,
+            Key.newBuilder().ed25519(Bytes.fromHex(A4589189_PUBLIC_KEY)).build(),
+            4589190L,
+            Key.newBuilder().ed25519(Bytes.fromHex(A4589190_PUBLIC_KEY)).build(),
+            4589192L,
+            Key.newBuilder().ed25519(Bytes.fromHex(A4589192_PUBLIC_KEY)).build(),
+            9266133L,
+            Key.newBuilder().ecdsaSecp256k1(Bytes.fromHex(A9266133_PUBLIC_KEY)).build());
+    private static final int NUM_TOPICS = 1;
+    private static final long INITIAL_BALANCE = 100_000_000 * 100_000_000L;
+
+    private static final String PLEX_SYMBOL = "PLEX";
+    private static final String PLEX_NAME = "Lambdaplex";
+    private static final long PLEX_NUMBER = 666666L;
+    private static final int PLEX_DECIMALS = 6;
+    private static final long PLEX_SUPPLY = BigInteger.valueOf(1_000_000_000L).multiply(BigInteger.TEN.pow(PLEX_DECIMALS)).longValueExact();
+
+    private static final Map<String, String> DEV_TOKEN_METADATA = new LinkedHashMap<>() {
+        {
+            put("BTC", "Bitcoin");
+            put("ETH", "Ethereum");
+            put("XRP", "XRP");
+            put("BNB", "Binance Coin");
+            put("SOL", "Solana");
+            put("USDC", "USDC");
+            put("DOGE", "Dogecoin");
+            put("TRX", "TRON");
+            put("ADA", "Cardano");
+            put("XLM", "Stellar");
+            put("HYPE", "Hyperliquid");
+            put("SUI", "Sui");
+            put("LINK", "Chainlink");
+            put("AVAX", "Avalanche");
+        }
+    };
+    private static final Map<String, Map<String, Long>> DEV_ERC20_METADATA = new LinkedHashMap<>() {
+        {
+            put("WBTC", Map.of("Wrapped Bitcoin", 111111L));
+            put("WETH", Map.of("Wrapped Ethereum", 222222L));
+        }
+    };
+    private static final int NUM_TOKENS = DEV_TOKEN_METADATA.size();
+
+    private static final SplittableRandom RANDOM = new SplittableRandom(1_234_567L);
+
+
+
+    private void setupPlexAccounts(SystemContext systemContext) {
+        for (final var entry : WELL_KNOWN_KEYS.entrySet()) {
+            final var accountNum = entry.getKey();
+            final var key = entry.getValue();
+            systemContext.dispatchCreation(
+                    b -> b.memo("Synthetic plex account creation")
+                            .cryptoCreateAccount(CryptoCreateTransactionBody.newBuilder()
+                                    .key(key)
+                                    .maxAutomaticTokenAssociations(accountNum != 9266133L ? (NUM_TOKENS + 1) : 0)
+                                    .initialBalance(INITIAL_BALANCE)
+                                    .autoRenewPeriod(new Duration(7776000L))
+                                    .build())
+                            .build(),
+                    accountNum);
+        }
+
+        for (final long num : List.of(9999L, 99999L, 999999L)) {
+            systemContext.dispatchCreation(
+                    b -> b.memo("User bot account")
+                            .cryptoCreateAccount(CryptoCreateTransactionBody.newBuilder()
+                                    .key(WELL_KNOWN_KEYS.get(4589188L))
+                                    .maxAutomaticTokenAssociations(111)
+                                    .initialBalance(INITIAL_BALANCE)
+                                    .autoRenewPeriod(new Duration(7776000L))
+                                    .build())
+                            .build(),
+                    num);
+        }
+    }
+
+    private static final String FEE_COLLECTOR_INITCODE_LOC =
+            "/Users/michaeltinker/dev/llabs/lambdaplex/contracts/build/LambdaplexFeeCollector.bin";
+    private static final String ERC20_CONTRACT = "SimpleERC20";
+
+    private void setupPlexFeeCollector(SystemContext systemContext) {
+        final byte[] initcode;
+        try {
+            initcode = Files.readAllBytes(Paths.get(FEE_COLLECTOR_INITCODE_LOC));
+            final var encoder = new HexMessageEncoder();
+            final var unhexedBytecode = encoder.decode(new String(initcode));
+            final var op = ContractCreateTransactionBody.newBuilder()
+                    .initcode(Bytes.wrap(unhexedBytecode))
+                    .autoRenewPeriod(new Duration(7776000L))
+                    .gas(1_000_000)
+                    .build();
+            systemContext.dispatchCreation(
+                    b -> b.memo("Synthetic plex account creation")
+                            .transactionID(TransactionID.newBuilder()
+                                    .accountID(AccountID.newBuilder().accountNum(MASTER_ID))
+                                    .build())
+                            .contractCreateInstance(op)
+                            .build(),
+                    FEE_COLLECTOR_ID);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private void setupSimpleErc20Initcode(SystemContext systemContext) {
+        final byte[] initcode;
+        try {
+            final var slash = FEE_COLLECTOR_INITCODE_LOC.lastIndexOf("/");
+            final var loc = FEE_COLLECTOR_INITCODE_LOC.substring(0, slash) + File.separator + ERC20_CONTRACT + ".bin";
+            initcode = Files.readAllBytes(Paths.get(loc));
+            final var op = FileCreateTransactionBody.newBuilder()
+                    .contents(Bytes.wrap(initcode))
+                    .build();
+            systemContext.dispatchCreation(
+                    b -> b.memo("Simple ERC-20 initcode creation")
+                            .transactionID(TransactionID.newBuilder()
+                                    .accountID(AccountID.newBuilder().accountNum(MASTER_ID))
+                                    .build())
+                            .fileCreate(op)
+                            .build(),
+                    SIMPLE_ERC20_INITCODE_ID);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static final String CONSTRUCTOR_ABI =
+            "{\"inputs\":[{\"internalType\":\"string\",\"name\":\"name_\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"symbol_\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"}";
+
+    private void setupErc20(SystemContext systemContext, String name, String symbol, long contractId) {
+        final var f = com.esaulpaugh.headlong.abi.Function.fromJson(CONSTRUCTOR_ABI);
+        final var encodedCall = f.encodeCallWithArgs(name, symbol).array();
+        final var op = ContractCreateTransactionBody.newBuilder()
+                .fileID(FileID.newBuilder().fileNum(SIMPLE_ERC20_INITCODE_ID))
+                .constructorParameters(Bytes.wrap(Arrays.copyOfRange(encodedCall, 4, encodedCall.length)))
+                .autoRenewPeriod(new Duration(7776000L))
+                .gas(4_000_000)
+                .build();
+        systemContext.dispatchCreation(
+                b -> b.memo("Synth ERC-20 " + symbol + " creation")
+                        .transactionID(TransactionID.newBuilder()
+                                .accountID(AccountID.newBuilder().accountNum(MASTER_ID))
+                                .build())
+                        .contractCreateInstance(op)
+                        .build(),
+                contractId);
+    }
+
+    private void setupPlexTokens(SystemContext systemContext) {
+        final var tokenTreasuryId = AccountID.newBuilder().accountNum(MASTER_ID).build();
+        final var number = new AtomicLong(FIRST_TOKEN_NUM);
+        DEV_TOKEN_METADATA.forEach((s, name) -> {
+            final long n = number.getAndIncrement();
+            final var symbol = s.toUpperCase();
+            final var op = TokenCreateTransactionBody.newBuilder()
+                    .supplyKey(MASTER_KEY)
+                    .tokenType(FUNGIBLE_COMMON)
+                    .decimals(symbol.equals("USDC") ? 6 : RANDOM.nextInt(2, 11))
+                    .symbol(symbol)
+                    .name(name)
+                    .initialSupply(Long.MAX_VALUE)
+                    .treasury(tokenTreasuryId)
+                    .build();
+            systemContext.dispatchCreation(
+                    b -> b.memo("Synthetic plex token creation")
+                            .tokenCreation(op)
+                            .build(),
+                    n);
+        });
+        final var op = TokenCreateTransactionBody.newBuilder()
+                .supplyKey(MASTER_KEY)
+                .tokenType(FUNGIBLE_COMMON)
+                .decimals(PLEX_DECIMALS)
+                .symbol(PLEX_SYMBOL)
+                .name(PLEX_NAME)
+                .initialSupply(PLEX_SUPPLY)
+                .treasury(tokenTreasuryId)
+                .build();
+        systemContext.dispatchCreation(
+                b -> b.memo("Synthetic PLEX token creation")
+                        .tokenCreation(op)
+                        .build(),
+                PLEX_NUMBER);
+    }
+
+    private void setupErc20Tokens(SystemContext systemContext) {
+        DEV_ERC20_METADATA.forEach((s, meta) -> {
+            final var entry = meta.entrySet().iterator().next();
+            setupErc20(systemContext, entry.getKey(), s, entry.getValue());
+        });
+    }
+
+    private void setupPlexTopics(SystemContext systemContext) {
+        for (int i = 0; i < NUM_TOPICS; i++) {
+            final var op = ConsensusCreateTopicTransactionBody.newBuilder()
+                    .autoRenewPeriod(new Duration(7776000L))
+                    .build();
+            systemContext.dispatchCreation(
+                    b -> b.memo("Synthetic plex topic creation")
+                            .consensusCreateTopic(op)
+                            .build(),
+                    FIRST_TOPIC_NUM + i);
         }
     }
 }

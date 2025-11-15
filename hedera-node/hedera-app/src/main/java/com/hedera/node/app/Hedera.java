@@ -29,12 +29,7 @@ import static org.hiero.consensus.platformstate.V0540PlatformStateSchema.PLATFOR
 import static org.hiero.consensus.roster.RosterUtils.rosterFrom;
 
 import com.hedera.hapi.block.stream.output.StateChanges;
-import com.hedera.hapi.node.base.Duration;
-import com.hedera.hapi.node.base.HederaFunctionality;
-import com.hedera.hapi.node.base.SemanticVersion;
-import com.hedera.hapi.node.base.SignatureMap;
-import com.hedera.hapi.node.base.Timestamp;
-import com.hedera.hapi.node.base.TransactionID;
+import com.hedera.hapi.node.base.*;
 import com.hedera.hapi.node.state.blockrecords.BlockInfo;
 import com.hedera.hapi.node.state.roster.Roster;
 import com.hedera.hapi.node.transaction.SignedTransaction;
@@ -42,6 +37,7 @@ import com.hedera.hapi.node.transaction.ThrottleDefinitions;
 import com.hedera.hapi.node.transaction.TransactionBody;
 import com.hedera.hapi.platform.event.StateSignatureTransaction;
 import com.hedera.hapi.platform.state.PlatformState;
+import com.hedera.hapi.services.auxiliary.hints.HintsKeyPublicationTransactionBody;
 import com.hedera.hapi.util.HapiUtils;
 import com.hedera.hapi.util.UnknownHederaFunctionality;
 import com.hedera.node.app.blocks.BlockHashSigner;
@@ -138,6 +134,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.List;
@@ -145,6 +142,9 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -782,6 +782,23 @@ public final class Hedera
                 System.exit(1);
             }
         }
+        Executors.newSingleThreadScheduledExecutor()
+                .scheduleAtFixedRate(
+                        () -> {
+                            this.submitFuture(
+                                    AccountID.newBuilder().accountNum(3L).build(),
+                                    Instant.now(),
+                                    java.time.Duration.ofSeconds(180),
+                                    b -> b.hintsKeyPublication(HintsKeyPublicationTransactionBody.DEFAULT),
+                                    ForkJoinPool.commonPool(),
+                                    2,
+                                    1,
+                                    java.time.Duration.ofSeconds(2),
+                                    (body, msg) -> logger.info("Will need to retry"));
+                        },
+                        8,
+                        8,
+                        TimeUnit.SECONDS);
     }
 
     /**
