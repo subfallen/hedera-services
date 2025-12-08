@@ -18,6 +18,7 @@ import net.i2p.crypto.eddsa.EdDSAPrivateKey;
 import org.bouncycastle.crypto.digests.SHA512Digest;
 import org.bouncycastle.crypto.generators.PKCS5S2ParametersGenerator;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.hiero.base.utility.CommonUtils;
 
 public class Bip0032 {
     private static final int KEY_SIZE = 512;
@@ -26,6 +27,13 @@ public class Bip0032 {
     private static final Charset UTF_8 = Charset.forName("UTF-8");
     private static final int[] INDICES = {44, 3030, 0, 0, 0};
     private static final byte[] MAC_PASSWORD = "ed25519 seed".getBytes(Charset.forName("UTF-8"));
+
+    public static void main(String[] args) {
+        final var mnemonic = "turkey unit woman around label uphold march resemble quarter antique sudden volcano obtain advance cupboard knee fine reduce method warm like media tragic enable";
+        final var key = mnemonicToEd25519Key(mnemonic);
+        System.out.println("Private key: " + CommonUtils.hex(key.getSeed()));
+        System.out.println("Public key: " + CommonUtils.hex(key.getAbyte()));
+    }
 
     /**
      * Converts the mnemonic to the corresponding Ed25519 private key as prescribed by BIP-0032
