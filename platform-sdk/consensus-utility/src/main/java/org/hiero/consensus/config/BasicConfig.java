@@ -22,6 +22,7 @@ import com.swirlds.config.api.ConfigProperty;
  */
 @ConfigData
 public record BasicConfig(
-        @ConfigProperty(defaultValue = "true") boolean loadKeysFromPfxFiles,
+        @ConfigProperty(defaultValue = "1000") int numConnections,
+        @ConfigProperty(defaultValue = "false") boolean loadKeysFromPfxFiles,
         @ConfigProperty(defaultValue = "1000") int jvmPauseDetectorSleepMs,
         @ConfigProperty(defaultValue = "1000") int jvmPauseReportMs) {}

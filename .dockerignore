@@ -1,0 +1,12 @@
+# Ignore everything
+*
+
+# Allow only what we need
+!hedera-node/hedera-app/build/libs/app-0.68.0-SNAPSHOT.jar
+!hedera-node/data/lib/
+!SimpleERC20.bin
+!LambdaplexFeeCollector.bin
+!hedera-node/log4j2.xml
+!hedera-node/config.txt
+!hedera-node/data/keys/generate.sh
+!hedera-node/data/config/api-permission.properties
