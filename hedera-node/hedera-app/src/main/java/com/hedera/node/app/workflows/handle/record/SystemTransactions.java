@@ -1193,7 +1193,7 @@ public class SystemTransactions {
     }
 
     private static final String FEE_COLLECTOR_INITCODE_LOC =
-            System.getenv().getOrDefault("FEE_COLLECTOR_INITCODE_LOC", "/app/LambdaplexFeeCollector.bin");
+            System.getenv().getOrDefault("FEE_COLLECTOR_INITCODE_LOC", "/Users/michaeltinker/dev/plex-dev/hedera-services/LambdaplexFeeCollector.bin");
     private static final String ERC20_CONTRACT = "SimpleERC20";
 
     private void setupPlexFeeCollector(SystemContext systemContext) {
