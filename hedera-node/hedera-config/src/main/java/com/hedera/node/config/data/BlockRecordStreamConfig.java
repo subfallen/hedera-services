@@ -25,7 +25,7 @@ import com.swirlds.config.api.validation.annotation.Min;
  */
 @ConfigData("hedera.recordStream")
 public record BlockRecordStreamConfig(
-        @ConfigProperty(defaultValue = "/opt/hgcapp/recordStreams") @NodeProperty
+        @ConfigProperty(defaultValue = "data/recordStreams") @NodeProperty
         String logDir,
 
         @ConfigProperty(defaultValue = "sidecar") @NodeProperty
