@@ -70,19 +70,21 @@ public class ExpansionBenchmark extends AppTestBase implements Scenarios {
     private Key createKey() {
         return switch (scenario) {
             case "key" -> createCryptographicKey();
-            case "keyList" -> Key.newBuilder()
-                    .keyList(KeyList.newBuilder()
-                            .keys(createCryptographicKey(), createCryptographicKey(), createCryptographicKey()))
-                    .build();
-            case "thresholdKey" -> Key.newBuilder()
-                    .thresholdKey(ThresholdKey.newBuilder()
-                            .threshold(2)
-                            .keys(KeyList.newBuilder()
-                                    .keys(
-                                            createCryptographicKey(),
-                                            createCryptographicKey(),
-                                            createCryptographicKey())))
-                    .build();
+            case "keyList" ->
+                Key.newBuilder()
+                        .keyList(KeyList.newBuilder()
+                                .keys(createCryptographicKey(), createCryptographicKey(), createCryptographicKey()))
+                        .build();
+            case "thresholdKey" ->
+                Key.newBuilder()
+                        .thresholdKey(ThresholdKey.newBuilder()
+                                .threshold(2)
+                                .keys(KeyList.newBuilder()
+                                        .keys(
+                                                createCryptographicKey(),
+                                                createCryptographicKey(),
+                                                createCryptographicKey())))
+                        .build();
             default -> throw new IllegalArgumentException("Unknown scenario: " + scenario);
         };
     }

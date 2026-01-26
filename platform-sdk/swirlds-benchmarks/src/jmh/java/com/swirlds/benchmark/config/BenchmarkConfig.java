@@ -40,8 +40,13 @@ public record BenchmarkConfig(
         @ConfigProperty(defaultValue = "false") boolean enableSnapshots,
         @ConfigProperty(defaultValue = "false") boolean printHistogram,
         @ConfigProperty(defaultValue = "") String csvOutputFolder,
-        @ConfigProperty(defaultValue = "BenchmarkMetrics.csv") String csvMetricsFileName,
-        @ConfigProperty(defaultValue = "BenchmarkMetricNames.csv") String csvMetricNamesFileName,
+
+        @ConfigProperty(defaultValue = "BenchmarkMetrics.csv")
+        String csvMetricsFileName,
+
+        @ConfigProperty(defaultValue = "BenchmarkMetricNames.csv")
+        String csvMetricNamesFileName,
+
         @ConfigProperty(defaultValue = "0") int csvWriteFrequency,
         @ConfigProperty(defaultValue = "false") boolean csvAppend,
         @ConfigProperty(defaultValue = "sda") String deviceName) {

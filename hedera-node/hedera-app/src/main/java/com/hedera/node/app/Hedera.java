@@ -5,9 +5,13 @@ import static com.hedera.hapi.node.base.ResponseCodeEnum.DUPLICATE_TRANSACTION;
 import static com.hedera.hapi.node.base.ResponseCodeEnum.NOT_SUPPORTED;
 import static com.hedera.hapi.node.base.ResponseCodeEnum.PLATFORM_NOT_ACTIVE;
 import static com.hedera.hapi.node.base.ResponseCodeEnum.UNKNOWN;
+import static com.hedera.hapi.node.freeze.FreezeType.FREEZE_ABORT;
+import static com.hedera.hapi.node.freeze.FreezeType.FREEZE_UPGRADE;
+import static com.hedera.hapi.util.HapiUtils.*;
 import static com.hedera.hapi.util.HapiUtils.SEMANTIC_VERSION_COMPARATOR;
 import static com.hedera.hapi.util.HapiUtils.functionOf;
 import static com.hedera.node.app.blocks.BlockStreamManager.HASH_OF_ZERO;
+import static com.hedera.node.app.hapi.utils.CommonUtils.noThrowSha384HashOf;
 import static com.hedera.node.app.quiescence.QuiescenceUtils.isRelevantTransaction;
 import static com.hedera.node.app.records.schemas.V0490BlockRecordSchema.BLOCKS_STATE_ID;
 import static com.hedera.node.app.spi.workflows.record.StreamBuilder.nodeSignedTxWith;
@@ -30,6 +34,7 @@ import static org.hiero.consensus.roster.RosterUtils.rosterFrom;
 
 import com.hedera.hapi.block.stream.output.StateChanges;
 import com.hedera.hapi.node.base.*;
+import com.hedera.hapi.node.freeze.FreezeTransactionBody;
 import com.hedera.hapi.node.state.blockrecords.BlockInfo;
 import com.hedera.hapi.node.state.roster.Roster;
 import com.hedera.hapi.node.transaction.SignedTransaction;
@@ -134,6 +139,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.InstantSource;
 import java.util.ArrayList;
@@ -794,11 +800,52 @@ public final class Hedera
                                     2,
                                     1,
                                     java.time.Duration.ofSeconds(2),
-                                    (body, msg) -> logger.info("Will need to retry"));
+                                    (body, msg) -> logger.info("Will need to retry"),
+                                    null);
                         },
                         8,
                         8,
                         TimeUnit.SECONDS);
+        if (false) {
+            final var nextIsAbort = new AtomicBoolean();
+            Executors.newSingleThreadScheduledExecutor()
+                    .scheduleAtFixedRate(
+                            () -> {
+                                this.submitFuture(
+                                        AccountID.newBuilder().accountNum(3L).build(),
+                                        Instant.now(),
+                                        java.time.Duration.ofSeconds(180),
+                                        b -> {
+                                            if (nextIsAbort.get()) {
+                                                b.freeze(FreezeTransactionBody.newBuilder()
+                                                        .freezeType(FREEZE_ABORT)
+                                                        .build());
+                                                nextIsAbort.set(false);
+                                            } else {
+                                                b.freeze(FreezeTransactionBody.newBuilder()
+                                                        .freezeType(FREEZE_UPGRADE)
+                                                        .updateFile(FileID.newBuilder()
+                                                                .fileNum(150L)
+                                                                .build())
+                                                        .fileHash(noThrowSha384HashOf(Bytes.EMPTY))
+                                                        .startTime(asTimestamp(Clock.systemUTC()
+                                                                .instant()
+                                                                .plusSeconds(300)))
+                                                        .build());
+                                                nextIsAbort.set(true);
+                                            }
+                                        },
+                                        ForkJoinPool.commonPool(),
+                                        2,
+                                        1,
+                                        java.time.Duration.ofSeconds(2),
+                                        (body, msg) -> logger.info("Will need to retry"),
+                                        AccountID.newBuilder().accountNum(58L).build());
+                            },
+                            15,
+                            120,
+                            TimeUnit.SECONDS);
+        }
     }
 
     /**

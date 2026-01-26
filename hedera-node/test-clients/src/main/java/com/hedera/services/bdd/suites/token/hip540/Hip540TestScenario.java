@@ -128,12 +128,14 @@ public record Hip540TestScenario(
         }
         switch (action) {
             case ADD, REPLACE -> ops.add(newKeyNamed(newRoleKey()));
-            case REMOVE -> ops.add(
-                    withOpContext((spec, opLog) -> spec.registry().saveKey(newRoleKey(), IMMUTABILITY_SENTINEL_KEY)));
-            case ZERO_OUT -> ops.add(
-                    withOpContext((spec, opLog) -> spec.registry().saveKey(newRoleKey(), ZEROED_OUT_KEY)));
-            case REPLACE_WITH_INVALID -> ops.add(
-                    withOpContext((spec, opLog) -> spec.registry().saveKey(newRoleKey(), STRUCTURALLY_INVALID_KEY)));
+            case REMOVE ->
+                ops.add(withOpContext(
+                        (spec, opLog) -> spec.registry().saveKey(newRoleKey(), IMMUTABILITY_SENTINEL_KEY)));
+            case ZERO_OUT ->
+                ops.add(withOpContext((spec, opLog) -> spec.registry().saveKey(newRoleKey(), ZEROED_OUT_KEY)));
+            case REPLACE_WITH_INVALID ->
+                ops.add(withOpContext(
+                        (spec, opLog) -> spec.registry().saveKey(newRoleKey(), STRUCTURALLY_INVALID_KEY)));
         }
         ops.add(creation());
         ops.add(update());

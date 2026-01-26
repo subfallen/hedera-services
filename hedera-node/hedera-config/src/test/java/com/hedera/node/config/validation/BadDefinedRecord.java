@@ -8,4 +8,5 @@ import java.util.List;
 
 @ConfigData
 public record BadDefinedRecord(
-        @EmulatesMap @ConfigProperty KeyValuePair pair, @EmulatesMap @ConfigProperty List<String> data) {}
+        @EmulatesMap @ConfigProperty KeyValuePair pair,
+        @EmulatesMap @ConfigProperty List<String> data) {}

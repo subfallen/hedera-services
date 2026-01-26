@@ -14,8 +14,8 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * @param evmAlias The evm alias of the key if supplied.
  * @param passed Whether the verification passed (VALID) or not.
  */
-public record SignatureVerificationImpl(@Nullable Key key, @Nullable Bytes evmAlias, boolean passed)
-        implements SignatureVerification {
+public record SignatureVerificationImpl(
+        @Nullable Key key, @Nullable Bytes evmAlias, boolean passed) implements SignatureVerification {
 
     public static SignatureVerification passedVerification(@NonNull final Key key) {
         return new SignatureVerificationImpl(key, null, true);

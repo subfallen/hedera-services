@@ -13,4 +13,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * @param edge         the label on the edge(s) to be substituted
  * @param substitution the substitute label
  */
-public record ModelEdgeSubstitution(@NonNull String source, @NonNull String edge, @NonNull String substitution) {}
+public record ModelEdgeSubstitution(
+        @NonNull String source,
+        @NonNull String edge,
+        @NonNull String substitution) {}

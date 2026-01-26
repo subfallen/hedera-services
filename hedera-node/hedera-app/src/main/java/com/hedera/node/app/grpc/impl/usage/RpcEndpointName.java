@@ -14,7 +14,8 @@ import java.util.concurrent.ConcurrentMap;
  * @param serviceName the service name associated with the endpoint
  * @param methodName the method name associated with the endpoint
  */
-public record RpcEndpointName(@NonNull String serviceName, @NonNull String methodName) {
+public record RpcEndpointName(
+        @NonNull String serviceName, @NonNull String methodName) {
     private static final String UNKNOWN = "Unknown";
 
     /**

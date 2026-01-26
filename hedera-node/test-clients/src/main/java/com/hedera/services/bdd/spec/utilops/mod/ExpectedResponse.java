@@ -19,7 +19,8 @@ import java.util.Set;
  * @param permissibleOutcomes a set of permissible status responses at consensus
  */
 public record ExpectedResponse(
-        @Nullable Set<ResponseCodeEnum> permissiblePrechecks, @Nullable Set<ResponseCodeEnum> permissibleOutcomes) {
+        @Nullable Set<ResponseCodeEnum> permissiblePrechecks,
+        @Nullable Set<ResponseCodeEnum> permissibleOutcomes) {
     private static final Set<ResponseCodeEnum> SUCCESS = EnumSet.of(ResponseCodeEnum.SUCCESS);
 
     public static ExpectedResponse atIngest(@NonNull final ResponseCodeEnum status) {

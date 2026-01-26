@@ -64,7 +64,8 @@ class AppContextTest {
                         TIMES_TO_TRY,
                         IDS_PER_TRY,
                         RETRY_DELAY,
-                        onFailure);
+                        onFailure,
+                        null);
     }
 
     @Test
@@ -88,7 +89,8 @@ class AppContextTest {
                 TIMES_TO_TRY,
                 IDS_PER_TRY,
                 RETRY_DELAY,
-                onFailure);
+                onFailure,
+                null);
 
         requireNonNull(task.get()).run();
         verify(onFailure).accept(any(), any());
@@ -122,7 +124,8 @@ class AppContextTest {
                 TIMES_TO_TRY,
                 IDS_PER_TRY,
                 RETRY_DELAY,
-                onFailure);
+                onFailure,
+                null);
 
         requireNonNull(task.get()).run();
     }
@@ -144,7 +147,8 @@ class AppContextTest {
                 TIMES_TO_TRY,
                 IDS_PER_TRY,
                 RETRY_DELAY,
-                onFailure);
+                onFailure,
+                null);
 
         requireNonNull(task.get()).run();
         assertTrue(future.isCompletedExceptionally());
@@ -168,7 +172,8 @@ class AppContextTest {
                 TIMES_TO_TRY,
                 IDS_PER_TRY,
                 RETRY_DELAY,
-                onFailure);
+                onFailure,
+                null);
 
         requireNonNull(task.get()).run();
         assertTrue(future.isCompletedExceptionally());

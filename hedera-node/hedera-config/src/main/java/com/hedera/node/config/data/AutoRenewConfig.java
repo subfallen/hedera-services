@@ -7,7 +7,8 @@ import com.swirlds.config.api.ConfigProperty;
 import java.util.Set;
 
 @ConfigData("autoRenew")
-public record AutoRenewConfig(@ConfigProperty(defaultValue = "") @NetworkProperty Set<String> targetTypes) {
+public record AutoRenewConfig(
+        @ConfigProperty(defaultValue = "") @NetworkProperty Set<String> targetTypes) {
     public boolean expireContracts() {
         return targetTypes.contains("CONTRACT");
     }

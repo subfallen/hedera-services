@@ -9,7 +9,8 @@ import com.swirlds.config.impl.validators.DefaultConfigViolation;
 
 @ConfigData("method")
 public record ConstraintMethodConfigData(
-        @ConstraintMethod("checkA") boolean valueA, @ConstraintMethod("checkB") boolean valueB) {
+        @ConstraintMethod("checkA") boolean valueA,
+        @ConstraintMethod("checkB") boolean valueB) {
 
     public ConfigViolation checkA(final Configuration configuration) {
         if (valueA) {

@@ -37,8 +37,8 @@ public class CustomLogOperation extends AbstractOperation {
                     case 2 -> LOG2.opcode();
                     case 3 -> LOG3.opcode();
                     case 4 -> LOG4.opcode();
-                    default -> throw new IllegalArgumentException(
-                            "No EVM log operation supports " + numTopics + " topics");
+                    default ->
+                        throw new IllegalArgumentException("No EVM log operation supports " + numTopics + " topics");
                 },
                 "LOG" + numTopics,
                 numTopics + 2,

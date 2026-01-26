@@ -60,10 +60,10 @@ public class ExchangeRateSystemContract extends AbstractFullContract implements 
             final var activeRate = proxyUpdaterFor(messageFrame).currentExchangeRate();
             final var result =
                     switch (selector) {
-                        case TO_TINYBARS_SELECTOR -> padded(
-                                ConversionUtils.fromAToB(amount, activeRate.hbarEquiv(), activeRate.centEquiv()));
-                        case TO_TINYCENTS_SELECTOR -> padded(
-                                ConversionUtils.fromAToB(amount, activeRate.centEquiv(), activeRate.hbarEquiv()));
+                        case TO_TINYBARS_SELECTOR ->
+                            padded(ConversionUtils.fromAToB(amount, activeRate.hbarEquiv(), activeRate.centEquiv()));
+                        case TO_TINYCENTS_SELECTOR ->
+                            padded(ConversionUtils.fromAToB(amount, activeRate.centEquiv(), activeRate.hbarEquiv()));
                         default -> null;
                     };
             requireNonNull(result);

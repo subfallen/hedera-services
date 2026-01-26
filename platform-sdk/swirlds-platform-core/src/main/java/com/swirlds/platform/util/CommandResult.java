@@ -10,7 +10,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * @param out      text written to stdout
  * @param error    text written to stderr
  */
-public record CommandResult(int exitCode, @NonNull String out, @NonNull String error) {
+public record CommandResult(
+        int exitCode, @NonNull String out, @NonNull String error) {
 
     /**
      * Returns true if the command exited with a zero exit code.

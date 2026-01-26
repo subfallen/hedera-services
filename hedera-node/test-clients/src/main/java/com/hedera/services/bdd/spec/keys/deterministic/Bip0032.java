@@ -29,7 +29,8 @@ public class Bip0032 {
     private static final byte[] MAC_PASSWORD = "ed25519 seed".getBytes(Charset.forName("UTF-8"));
 
     public static void main(String[] args) {
-        final var mnemonic = "turkey unit woman around label uphold march resemble quarter antique sudden volcano obtain advance cupboard knee fine reduce method warm like media tragic enable";
+        final var mnemonic =
+                "turkey unit woman around label uphold march resemble quarter antique sudden volcano obtain advance cupboard knee fine reduce method warm like media tragic enable";
         final var key = mnemonicToEd25519Key(mnemonic);
         System.out.println("Private key: " + CommonUtils.hex(key.getSeed()));
         System.out.println("Public key: " + CommonUtils.hex(key.getAbyte()));

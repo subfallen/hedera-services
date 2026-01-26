@@ -21,8 +21,8 @@ import java.util.function.Consumer;
  * {@link SingleTransactionRecord} objects are already constructed for streaming.
  */
 public record LegacyListRecordSource(
-        @NonNull List<SingleTransactionRecord> precomputedRecords, @NonNull List<IdentifiedReceipt> identifiedReceipts)
-        implements RecordSource {
+        @NonNull List<SingleTransactionRecord> precomputedRecords,
+        @NonNull List<IdentifiedReceipt> identifiedReceipts) implements RecordSource {
 
     @Override
     public @NonNull List<SingleTransactionRecord> precomputedRecords() {

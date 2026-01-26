@@ -16,10 +16,16 @@ import java.time.Duration;
 @ConfigData("fileSystemManager")
 public record FileSystemManagerConfig(
         @ConfigProperty(defaultValue = "data")
-                String rootPath, // On purpose matches root of {@link StateCommonConfig#savedStateDirectory()}
-        @ConfigProperty(defaultValue = DEFAULT_DATA_DIR_NAME) String userDataDir,
+        String rootPath, // On purpose matches root of {@link StateCommonConfig#savedStateDirectory()}
+
+        @ConfigProperty(defaultValue = DEFAULT_DATA_DIR_NAME)
+        String userDataDir,
+
         @ConfigProperty(defaultValue = DEFAULT_TMP_DIR_NAME) String tmpDir,
-        @ConfigProperty(defaultValue = DEFAULT_RECYCLE_BIN_DIR_NAME) String recycleBinDir,
+
+        @ConfigProperty(defaultValue = DEFAULT_RECYCLE_BIN_DIR_NAME)
+        String recycleBinDir,
+
         @ConfigProperty(defaultValue = "7d") Duration recycleBinMaximumFileAge,
         @ConfigProperty(defaultValue = "1d") Duration recycleBinCollectionPeriod) {
 

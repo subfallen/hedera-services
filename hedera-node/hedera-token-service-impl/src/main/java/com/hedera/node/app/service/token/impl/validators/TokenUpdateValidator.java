@@ -37,7 +37,8 @@ public class TokenUpdateValidator {
      * @param token The token to update.
      * @param resolvedExpiryMeta The resolved expiry metadata.
      */
-    public record ValidationResult(@NonNull Token token, @NonNull ExpiryMeta resolvedExpiryMeta) {}
+    public record ValidationResult(
+            @NonNull Token token, @NonNull ExpiryMeta resolvedExpiryMeta) {}
 
     /**
      * Validate the semantics of a token update transaction.

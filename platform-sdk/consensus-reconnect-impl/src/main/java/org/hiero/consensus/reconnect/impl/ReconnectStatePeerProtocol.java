@@ -153,7 +153,7 @@ public class ReconnectStatePeerProtocol implements PeerProtocol {
     }
 
     /**
-     * {@inheritDoc}
+     * Determines whether this node should initiate reconnect with the configured peer.
      */
     @Override
     public boolean shouldInitiate() {
@@ -174,7 +174,7 @@ public class ReconnectStatePeerProtocol implements PeerProtocol {
     }
 
     /**
-     * {@inheritDoc}
+     * Releases the learner permit after a failed reconnect initiation attempt.
      */
     @Override
     public void initiateFailed() {
@@ -183,7 +183,7 @@ public class ReconnectStatePeerProtocol implements PeerProtocol {
     }
 
     /**
-     * {@inheritDoc}
+     * Determines whether this node should accept a reconnect request from the peer.
      */
     @Override
     public boolean shouldAccept() {
@@ -264,7 +264,7 @@ public class ReconnectStatePeerProtocol implements PeerProtocol {
     }
 
     /**
-     * {@inheritDoc}
+     * Releases teacher resources after a reconnect accept attempt fails.
      */
     @Override
     public void acceptFailed() {
@@ -276,7 +276,7 @@ public class ReconnectStatePeerProtocol implements PeerProtocol {
     }
 
     /**
-     * {@inheritDoc}
+     * Rejects reconnect when both peers initiate simultaneously.
      */
     @Override
     public boolean acceptOnSimultaneousInitiate() {
@@ -286,7 +286,7 @@ public class ReconnectStatePeerProtocol implements PeerProtocol {
     }
 
     /**
-     * {@inheritDoc}
+     * Runs reconnect in teacher or learner mode based on who initiated the protocol.
      */
     @Override
     public void runProtocol(final Connection connection)

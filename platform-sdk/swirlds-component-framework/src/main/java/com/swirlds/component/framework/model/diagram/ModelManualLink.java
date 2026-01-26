@@ -11,4 +11,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * @param label  the label on the edge
  * @param target the target scheduler
  */
-public record ModelManualLink(@NonNull String source, @NonNull String label, @NonNull String target) {}
+public record ModelManualLink(
+        @NonNull String source,
+        @NonNull String label,
+        @NonNull String target) {}

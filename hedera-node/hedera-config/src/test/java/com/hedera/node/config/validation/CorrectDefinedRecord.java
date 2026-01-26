@@ -7,4 +7,5 @@ import com.swirlds.config.api.ConfigProperty;
 import java.util.List;
 
 @ConfigData
-public record CorrectDefinedRecord(@EmulatesMap @ConfigProperty List<KeyValuePair> dataMap) {}
+public record CorrectDefinedRecord(
+        @EmulatesMap @ConfigProperty List<KeyValuePair> dataMap) {}

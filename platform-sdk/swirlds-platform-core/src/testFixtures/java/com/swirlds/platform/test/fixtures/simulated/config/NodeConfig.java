@@ -13,4 +13,6 @@ import java.time.Duration;
  * @param intakeQueueDelay the amount of time an event sits in the intake queue before being processed.
  */
 public record NodeConfig(
-        @NonNull Duration createEventEvery, @NonNull Latency customLatency, @NonNull Duration intakeQueueDelay) {}
+        @NonNull Duration createEventEvery,
+        @NonNull Latency customLatency,
+        @NonNull Duration intakeQueueDelay) {}

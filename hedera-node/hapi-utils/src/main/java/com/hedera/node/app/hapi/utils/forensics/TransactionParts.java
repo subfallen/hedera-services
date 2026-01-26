@@ -17,7 +17,9 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * for forensics purposes.
  */
 public record TransactionParts(
-        @NonNull Transaction wrapper, @NonNull TransactionBody body, @NonNull HederaFunctionality function) {
+        @NonNull Transaction wrapper,
+        @NonNull TransactionBody body,
+        @NonNull HederaFunctionality function) {
     public TransactionParts {
         requireNonNull(wrapper);
         requireNonNull(body);

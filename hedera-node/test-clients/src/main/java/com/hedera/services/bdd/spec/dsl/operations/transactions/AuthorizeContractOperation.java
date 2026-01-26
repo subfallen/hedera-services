@@ -105,8 +105,8 @@ public class AuthorizeContractOperation extends AbstractSpecOperation implements
     @Override
     protected void onSuccess(@NonNull final HapiSpec spec) {
         switch (target) {
-            case final SpecAccount account -> account.updateKeyFrom(
-                    toPbj(spec.registry().getKey(managedKeyName)), spec);
+            case final SpecAccount account ->
+                account.updateKeyFrom(toPbj(spec.registry().getKey(managedKeyName)), spec);
             case final SpecToken token -> {
                 // (FUTURE) - update the admin key on the token model
             }

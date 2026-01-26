@@ -12,4 +12,5 @@ import java.nio.file.Path;
  *                                      interpreted as an absolute path.
  */
 @ConfigData("state")
-public record StateCommonConfig(@ConfigProperty(defaultValue = "data/saved") Path savedStateDirectory) {}
+public record StateCommonConfig(
+        @ConfigProperty(defaultValue = "data/saved") Path savedStateDirectory) {}

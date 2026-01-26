@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 metrics:
   global:
     scrape_interval: 5s
@@ -11,7 +12,7 @@ metrics:
       scrape_configs:
         - job_name: ping-exporter
           static_configs:
-            - targets: ['127.0.0.1:9427']
+            - targets: ["127.0.0.1:9427"]
 
       remote_write:
         - url: https://prometheus-prod-13-prod-us-east-0.grafana.net/api/prom/push

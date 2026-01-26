@@ -67,7 +67,7 @@ public class ReconnectStateSyncProtocol implements Protocol {
     }
 
     /**
-     * {@inheritDoc}
+     * Creates a peer-specific reconnect protocol instance for the given node.
      */
     @NonNull
     @Override
@@ -89,7 +89,7 @@ public class ReconnectStateSyncProtocol implements Protocol {
     }
 
     /**
-     * {@inheritDoc}
+     * Updates the platform status observed by created peer protocol instances.
      */
     @Override
     public void updatePlatformStatus(@NonNull final PlatformStatus status) {

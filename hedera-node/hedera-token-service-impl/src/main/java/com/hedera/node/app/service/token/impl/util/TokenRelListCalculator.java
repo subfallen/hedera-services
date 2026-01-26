@@ -327,5 +327,6 @@ public class TokenRelListCalculator {
             @Nullable TokenID updatedHeadTokenId, @NonNull List<TokenRelation> updatedTokenRelsStillInChain) {}
 
     private record TokenRelPointerUpdateResult(
-            @Nullable TokenRelation updatedPrevTokenRel, @Nullable TokenRelation updatedNextTokenRel) {}
+            @Nullable TokenRelation updatedPrevTokenRel,
+            @Nullable TokenRelation updatedNextTokenRel) {}
 }

@@ -9,8 +9,7 @@ public final class HederaAsciiArt {
     /**
      * A banner that says "HEDERA". Is 100 characters wide.
      */
-    public static final String HEDERA =
-            """
+    public static final String HEDERA = """
             ****************        ****************************************************************************************
             ************                ************                                                                       *
             *********                      *********                                                                       *

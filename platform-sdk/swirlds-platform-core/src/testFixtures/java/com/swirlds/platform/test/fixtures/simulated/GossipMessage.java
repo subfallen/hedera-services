@@ -14,7 +14,10 @@ import org.hiero.consensus.model.node.NodeId;
  * @param senderId    the sender of the message
  * @param recipientId the node to send the message to, or {@code null} if broadcast to all
  */
-public record GossipMessage(@NonNull SelfSerializable message, @NonNull NodeId senderId, @Nullable NodeId recipientId) {
+public record GossipMessage(
+        @NonNull SelfSerializable message,
+        @NonNull NodeId senderId,
+        @Nullable NodeId recipientId) {
 
     /**
      * Create a gossip message with all nodes as recipients.

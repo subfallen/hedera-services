@@ -5,10 +5,10 @@ can be deprecated.
 
 1. **End-of-Life:** Services ignores the element completely.
 2. **Phase-Out:** Services still respects the element,
-but clients _must_ stop using it before end-of-life is reached.
+   but clients _must_ stop using it before end-of-life is reached.
 3. **Client-Side:** Services uses the element internally, and
-will continue to do so, but clients _should_ use a more efficient
-equivalent element.
+   will continue to do so, but clients _should_ use a more efficient
+   equivalent element.
 
 This document indicates in what sense each currently `deprecated`
 protobuf element should be understood.

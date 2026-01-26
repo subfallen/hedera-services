@@ -15,9 +15,15 @@ import java.util.Set;
 @ConfigData("network")
 public record NetworkConfig(
         @Min(1) int port,
-        @ConstraintMethod("checkServer") @ConfigProperty(defaultValue = "localhost") String server,
-        @ConfigProperty(value = "errorCodes", defaultValue = "404,500") List<Integer> errorCodes,
-        @ConfigProperty(value = "errorCodes", defaultValue = "404,500") Set<Long> errorCodeSet) {
+
+        @ConstraintMethod("checkServer") @ConfigProperty(defaultValue = "localhost")
+        String server,
+
+        @ConfigProperty(value = "errorCodes", defaultValue = "404,500")
+        List<Integer> errorCodes,
+
+        @ConfigProperty(value = "errorCodes", defaultValue = "404,500")
+        Set<Long> errorCodeSet) {
 
     public ConfigViolation checkServer(final Configuration configuration) {
         if (Objects.equals("invalid", server)) {

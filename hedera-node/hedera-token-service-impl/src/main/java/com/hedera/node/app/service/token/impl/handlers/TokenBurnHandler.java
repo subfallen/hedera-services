@@ -204,5 +204,6 @@ public final class TokenBurnHandler extends BaseTokenHandler implements Transact
         return ownerID == null;
     }
 
-    private record ValidationResult(@NonNull Token token, @NonNull TokenRelation tokenTreasuryRel) {}
+    private record ValidationResult(
+            @NonNull Token token, @NonNull TokenRelation tokenTreasuryRel) {}
 }

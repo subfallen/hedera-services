@@ -12,4 +12,5 @@ import java.time.Duration;
  *                             node to be degraded.
  */
 @ConfigData("uptime")
-public record UptimeConfig(@ConfigProperty(defaultValue = "10s") Duration degradationThreshold) {}
+public record UptimeConfig(
+        @ConfigProperty(defaultValue = "10s") Duration degradationThreshold) {}

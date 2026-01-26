@@ -159,14 +159,11 @@ public final class TransactionSidecarRecordMatcher extends TypeSafeDiagnosingMat
     private boolean matchesConsensusTimestampOf(
             final TransactionSidecarRecord sidecarRecord, final Description mismatch) {
         if (!matchesConsensusTimestampOf(sidecarRecord)) {
-            describeMismatch(
-                    """
+            describeMismatch("""
                     ***Mismatch in Consensus Timestamp:***
                     Expected: %s
                     Actual: %s
-                    """
-                            .formatted(consensusTimestamp, sidecarRecord.getConsensusTimestamp()),
-                    mismatch);
+                    """.formatted(consensusTimestamp, sidecarRecord.getConsensusTimestamp()), mismatch);
             return false;
         }
         return true;
@@ -189,11 +186,7 @@ public final class TransactionSidecarRecordMatcher extends TypeSafeDiagnosingMat
                     %s
                     Actual actions:
                     %s
-                    """
-                            .formatted(
-                                    mismatchedActions,
-                                    sidecarRecord.getActions().getContractActionsList()),
-                    mismatch);
+                    """.formatted(mismatchedActions, sidecarRecord.getActions().getContractActionsList()), mismatch);
             return false;
         }
         return true;
@@ -216,8 +209,7 @@ public final class TransactionSidecarRecordMatcher extends TypeSafeDiagnosingMat
                     %s
                     Actual state changes:
                     %s
-                    """
-                            .formatted(
+                    """.formatted(
                                     mismatchedStateChanges,
                                     sidecarRecord.getStateChanges().getContractStateChangesList()),
                     mismatch);
@@ -229,14 +221,11 @@ public final class TransactionSidecarRecordMatcher extends TypeSafeDiagnosingMat
     private boolean matchesBytecodeOf(final TransactionSidecarRecord sidecarRecord, final Description mismatch) {
         final Matcher<ContractBytecode> matcher = bytecodeMatcher.apply(bytecode);
         if (bytecode != null && !matcher.matches(sidecarRecord.getBytecode())) {
-            describeMismatch(
-                    """
+            describeMismatch("""
                     ***Mismatch in Bytecode:***
                     Expected: %s
                     Actual: %s
-                    """
-                            .formatted(bytecode, sidecarRecord.getBytecode()),
-                    mismatch);
+                    """.formatted(bytecode, sidecarRecord.getBytecode()), mismatch);
             return false;
         }
         return true;

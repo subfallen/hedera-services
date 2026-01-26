@@ -12,7 +12,9 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * @param expectedResponse the expected response after the mutation
  */
 public record TxnModification(
-        @NonNull String summary, @NonNull BodyMutation mutation, @NonNull ExpectedResponse expectedResponse) {
+        @NonNull String summary,
+        @NonNull BodyMutation mutation,
+        @NonNull ExpectedResponse expectedResponse) {
 
     public void customize(@NonNull final HapiTxnOp<?> op) {
         expectedResponse.customize(op.withBodyMutation(mutation));

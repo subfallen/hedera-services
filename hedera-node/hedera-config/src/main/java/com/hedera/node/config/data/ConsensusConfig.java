@@ -8,8 +8,10 @@ import com.swirlds.config.api.ConfigProperty;
 @ConfigData("consensus")
 public record ConsensusConfig(
         @ConfigProperty(value = "message.maxBytesAllowed", defaultValue = "1024") @NetworkProperty
-                int messageMaxBytesAllowed,
+        int messageMaxBytesAllowed,
+
         @ConfigProperty(value = "handle.maxPrecedingRecords", defaultValue = "3") @NetworkProperty
-                int handleMaxPrecedingRecords,
+        int handleMaxPrecedingRecords,
+
         @ConfigProperty(value = "handle.maxFollowingRecords", defaultValue = "50") @NetworkProperty
-                int handleMaxFollowingRecords) {}
+        int handleMaxFollowingRecords) {}

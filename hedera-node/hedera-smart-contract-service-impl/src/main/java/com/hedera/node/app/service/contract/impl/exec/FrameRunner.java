@@ -107,7 +107,8 @@ public class FrameRunner {
         }
     }
 
-    private record RecipientMetadata(boolean isPendingCreation, @NonNull ContractID hederaId) {
+    private record RecipientMetadata(
+            boolean isPendingCreation, @NonNull ContractID hederaId) {
         private RecipientMetadata {
             requireNonNull(hederaId);
         }

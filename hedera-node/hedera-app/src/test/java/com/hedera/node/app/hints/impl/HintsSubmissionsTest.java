@@ -81,7 +81,8 @@ class HintsSubmissionsTest {
                         anyInt(),
                         anyInt(),
                         any(),
-                        any());
+                        any(),
+                        null);
         final var spec = captor.getValue();
         final var builder = TransactionBody.newBuilder();
         spec.accept(builder);
@@ -113,7 +114,8 @@ class HintsSubmissionsTest {
                         anyInt(),
                         anyInt(),
                         any(),
-                        any());
+                        any(),
+                        null);
         final var spec = captor.getValue();
         final var builder = TransactionBody.newBuilder();
         spec.accept(builder);
@@ -150,7 +152,8 @@ class HintsSubmissionsTest {
                         anyInt(),
                         anyInt(),
                         any(),
-                        any());
+                        any(),
+                        null);
         final var spec = captor.getValue();
         final var builder = TransactionBody.newBuilder();
         spec.accept(builder);
@@ -191,7 +194,8 @@ class HintsSubmissionsTest {
                         anyInt(),
                         anyInt(),
                         any(),
-                        any());
+                        any(),
+                        null);
         final var spec = captor.getValue();
         final var builder = TransactionBody.newBuilder();
         spec.accept(builder);

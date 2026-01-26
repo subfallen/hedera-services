@@ -13,4 +13,5 @@ import java.util.List;
  * @param ledgerId the ledger ID
  * @param tssMessages the TSS messages
  */
-public record TssKeyMaterial(@NonNull Bytes ledgerId, @NonNull List<TssMessageTransactionBody> tssMessages) {}
+public record TssKeyMaterial(
+        @NonNull Bytes ledgerId, @NonNull List<TssMessageTransactionBody> tssMessages) {}

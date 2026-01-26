@@ -5,7 +5,8 @@ import com.hedera.services.bdd.spec.keys.KeyFactory;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 public interface SpecStateObserver {
-    record SpecState(@NonNull HapiSpecRegistry registry, @NonNull KeyFactory keyFactory) {}
+    record SpecState(
+            @NonNull HapiSpecRegistry registry, @NonNull KeyFactory keyFactory) {}
 
     void observe(@NonNull SpecState specState);
 }

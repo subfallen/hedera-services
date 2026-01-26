@@ -21,7 +21,9 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * @param summary a more concise summary of the divergence, if available
  */
 public record DifferingEntries(
-        @Nullable RecordStreamEntry firstEntry, @Nullable RecordStreamEntry secondEntry, @Nullable String summary) {
+        @Nullable RecordStreamEntry firstEntry,
+        @Nullable RecordStreamEntry secondEntry,
+        @Nullable String summary) {
 
     public enum FirstEncounteredDifference {
         FIRST_IS_MISSING,

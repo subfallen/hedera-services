@@ -44,7 +44,7 @@ public class KeyComparator implements Comparator<Key> {
                 case ECDSA_SECP256K1 -> compareSecp256k(first, second);
                 case THRESHOLD_KEY -> compareThreshold(first, second);
                 case KEY_LIST -> compareKeyList(first, second);
-                    // The next two are not currently supported key types.
+                // The next two are not currently supported key types.
                 case RSA_3072 -> compareRsa(first, second);
                 case ECDSA_384 -> compareEcdsa(first, second);
             };

@@ -15,4 +15,6 @@ import org.hiero.consensus.model.node.NodeId;
  * @param nodeConfigs configurations for each node in the network
  */
 public record NetworkConfig(
-        @Nullable String name, @NonNull Duration duration, @NonNull Map<NodeId, NodeConfig> nodeConfigs) {}
+        @Nullable String name,
+        @NonNull Duration duration,
+        @NonNull Map<NodeId, NodeConfig> nodeConfigs) {}

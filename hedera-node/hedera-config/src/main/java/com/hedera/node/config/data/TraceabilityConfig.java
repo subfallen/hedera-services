@@ -7,5 +7,7 @@ import com.swirlds.config.api.ConfigProperty;
 
 @ConfigData("traceability")
 public record TraceabilityConfig(
-        @ConfigProperty(defaultValue = "10") @NetworkProperty long maxExportsPerConsSec,
+        @ConfigProperty(defaultValue = "10") @NetworkProperty
+        long maxExportsPerConsSec,
+
         @ConfigProperty(defaultValue = "9") @NetworkProperty long minFreeToUsedGasThrottleRatio) {}

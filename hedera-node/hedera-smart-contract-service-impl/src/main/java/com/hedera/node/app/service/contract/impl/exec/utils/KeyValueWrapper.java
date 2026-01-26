@@ -102,12 +102,10 @@ public final class KeyValueWrapper {
             case INHERIT_ACCOUNT_KEY -> this.inheritedKey;
             case CONTRACT_ID -> Key.newBuilder().contractID(contractID).build();
             case ED25519 -> Key.newBuilder().ed25519(Bytes.wrap(ed25519)).build();
-            case ECDSA_SECP256K1 -> Key.newBuilder()
-                    .ecdsaSecp256k1(Bytes.wrap(ecdsaSecp256k1))
-                    .build();
-            case DELEGATABLE_CONTRACT_ID -> Key.newBuilder()
-                    .delegatableContractId(delegatableContractID)
-                    .build();
+            case ECDSA_SECP256K1 ->
+                Key.newBuilder().ecdsaSecp256k1(Bytes.wrap(ecdsaSecp256k1)).build();
+            case DELEGATABLE_CONTRACT_ID ->
+                Key.newBuilder().delegatableContractId(delegatableContractID).build();
         };
     }
 }

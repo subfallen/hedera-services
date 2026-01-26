@@ -77,7 +77,10 @@ class ConcurrentTaskSchedulerTests {
         // Each operation has a value that needs to be added the counter.
         // Most operations will have a null latch & started variables.
         // Operations that do not have a null latch & started variables will block
-        record Operation(int value, @Nullable CountDownLatch latch, @Nullable AtomicBoolean started) {}
+        record Operation(
+                int value,
+                @Nullable CountDownLatch latch,
+                @Nullable AtomicBoolean started) {}
 
         final AtomicLong count = new AtomicLong();
         final Consumer<Operation> handler = x -> {

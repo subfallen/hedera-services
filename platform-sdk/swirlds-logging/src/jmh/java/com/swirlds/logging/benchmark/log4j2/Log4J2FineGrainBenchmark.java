@@ -80,8 +80,7 @@ public class Log4J2FineGrainBenchmark extends Log4J2BaseBenchmark {
             timeUnit = TimeUnit.MILLISECONDS)
     public void logLargeStatement() {
 
-        String logMessage =
-                """
+        String logMessage = """
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus aliquam dolor placerat, efficitur erat a, iaculis lectus. Vestibulum lectus diam, dapibus sed porta eget, posuere ac mauris. Suspendisse nec dolor vel purus dignissim dignissim sed sed magna. Sed eu dignissim leo, ut volutpat lacus. Donec gravida ultricies dolor. Suspendisse pharetra egestas tortor, sit amet mattis tellus elementum eget. Integer eget nisl massa. In feugiat nisl ut mi tristique vulputate. Donec bibendum purus gravida massa blandit maximus. In blandit sem a malesuada pharetra. Fusce lectus erat, vulputate et tristique ac, ultricies a ex.
 
                 Duis non nisi rutrum metus maximus fringilla. Cras nibh leo, convallis ut dignissim eget, aliquam sit amet justo. Vivamus condimentum aliquet aliquam. Nulla facilisi. Pellentesque malesuada felis mauris, sed convallis ex convallis vel. Mauris libero nibh, faucibus eget erat at, sagittis consectetur purus. Ut ac massa maximus, vulputate justo lacinia, accumsan dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Mauris eget condimentum dolor. Nunc lacinia, lacus quis blandit aliquet, odio ex aliquet purus, et pretium urna ligula at ipsum.
@@ -207,8 +206,7 @@ public class Log4J2FineGrainBenchmark extends Log4J2BaseBenchmark {
             timeUnit = TimeUnit.MILLISECONDS)
     public void logWorstCase() {
 
-        String logMessage =
-                """
+        String logMessage = """
                 Lorem ipsum dolor sit amet, {} adipiscing elit. Vivamus aliquam dolor placerat, efficitur erat a, iaculis lectus. Vestibulum lectus diam, dapibus sed porta eget, posuere ac mauris. Suspendisse nec dolor vel purus dignissim dignissim sed sed magna. Sed eu dignissim leo, ut volutpat lacus. Donec gravida ultricies dolor. Suspendisse pharetra egestas tortor, sit amet mattis tellus elementum eget. Integer eget nisl massa. In feugiat nisl ut mi tristique vulputate. Donec bibendum purus gravida massa blandit maximus. In blandit sem a malesuada pharetra. Fusce lectus erat, vulputate et tristique ac, ultricies a ex.
 
                 Duis non nisi rutrum metus maximus fringilla. Cras nibh leo, {} ut dignissim eget, aliquam sit amet justo. Vivamus condimentum aliquet aliquam. Nulla facilisi. Pellentesque malesuada felis mauris, sed convallis ex convallis vel. Mauris libero nibh, faucibus eget erat at, sagittis consectetur purus. Ut ac massa maximus, vulputate justo lacinia, accumsan dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Mauris eget condimentum dolor. Nunc lacinia, lacus quis blandit aliquet, odio ex aliquet purus, et pretium urna ligula at ipsum.

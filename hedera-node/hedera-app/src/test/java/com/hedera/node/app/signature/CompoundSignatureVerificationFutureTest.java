@@ -253,9 +253,7 @@ final class CompoundSignatureVerificationFutureTest implements Scenarios {
     @DisplayName("Pass / Fail")
     final class PassFailTest {
         @ParameterizedTest
-        @CsvSource(
-                textBlock =
-                        """
+        @CsvSource(textBlock = """
                 true, true, true, true
                 true, true, false, false
                 true, false, true, false
@@ -282,9 +280,7 @@ final class CompoundSignatureVerificationFutureTest implements Scenarios {
         }
 
         @ParameterizedTest
-        @CsvSource(
-                textBlock =
-                        """
+        @CsvSource(textBlock = """
                 true, true, true, true
                 true, true, false, false
                 true, false, true, false

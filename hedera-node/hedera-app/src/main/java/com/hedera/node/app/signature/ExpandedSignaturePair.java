@@ -20,7 +20,10 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * @param sigPair The original signature pair
  */
 public record ExpandedSignaturePair(
-        @NonNull Key key, @NonNull Bytes keyBytes, @Nullable Bytes evmAlias, @NonNull SignaturePair sigPair) {
+        @NonNull Key key,
+        @NonNull Bytes keyBytes,
+        @Nullable Bytes evmAlias,
+        @NonNull SignaturePair sigPair) {
     /**
      * Gets the {@link Bytes} representing the signature signed by the private key matching the fully expanded public
      * key.

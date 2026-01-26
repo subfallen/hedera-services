@@ -377,8 +377,7 @@ public class WiringFlowchart {
     @NonNull
     public String render() {
         final StringBuilder sb = new StringBuilder();
-        sb.append(
-                """
+        sb.append("""
                 %%{
                     init: {
                         'flowchart': {'defaultRenderer': 'elk'},

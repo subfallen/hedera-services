@@ -16,7 +16,8 @@ import org.hyperledger.besu.evm.frame.BlockValues;
  * @param blockNo the block number
  * @param blockTime the block time
  */
-public record HevmBlockValues(long gasLimit, long blockNo, @NonNull Timestamp blockTime) implements BlockValues {
+public record HevmBlockValues(
+        long gasLimit, long blockNo, @NonNull Timestamp blockTime) implements BlockValues {
     private static final Optional<Wei> ZERO_BASE_FEE = Optional.of(Wei.ZERO);
 
     /**

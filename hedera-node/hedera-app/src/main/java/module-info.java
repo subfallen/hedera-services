@@ -61,6 +61,7 @@ module com.hedera.node.app {
     requires org.hiero.consensus.state;
     requires com.github.benmanes.caffeine;
     requires com.google.common;
+    requires com.goterl.lazysodium;
     requires io.grpc.netty;
     requires io.helidon.common.tls;
     requires io.helidon.webclient.api;
@@ -70,7 +71,6 @@ module com.hedera.node.app {
     requires org.apache.commons.lang3;
     requires static transitive com.github.spotbugs.annotations;
     requires static java.compiler;
-    requires com.goterl.lazysodium;
 
     exports com.hedera.node.app;
     exports com.hedera.node.app.state;

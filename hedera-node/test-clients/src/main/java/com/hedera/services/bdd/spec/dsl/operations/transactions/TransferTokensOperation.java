@@ -86,8 +86,9 @@ public class TransferTokensOperation extends AbstractSpecTransaction<TransferTok
     protected SpecOperation computeDelegate(@NonNull final HapiSpec spec) {
         return switch (transferType) {
             case FUNGIBLE_TOKEN -> cryptoTransfer(moving(units, tokenName).between(senderName, receiverName));
-            case NFT -> cryptoTransfer(
-                    TokenMovement.movingUnique(tokenName, serialNumber).between(senderName, receiverName));
+            case NFT ->
+                cryptoTransfer(
+                        TokenMovement.movingUnique(tokenName, serialNumber).between(senderName, receiverName));
         };
     }
 

@@ -43,8 +43,8 @@ import com.hedera.hapi.node.state.roster.RosterEntry;
 import com.hedera.hapi.node.state.token.StakingNodeInfo;
 import com.hedera.hapi.node.token.CryptoCreateTransactionBody;
 import com.hedera.hapi.node.token.CryptoTransferTransactionBody;
-import com.hedera.hapi.node.transaction.NodeStake;
 import com.hedera.hapi.node.token.TokenCreateTransactionBody;
+import com.hedera.hapi.node.transaction.NodeStake;
 import com.hedera.hapi.node.transaction.TransactionBody;
 import com.hedera.hapi.node.transaction.TransactionReceipt;
 import com.hedera.hapi.node.tss.LedgerIdNodeContribution;
@@ -106,7 +106,6 @@ import com.swirlds.state.spi.WritableSingletonState;
 import com.swirlds.state.spi.WritableStates;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -413,16 +412,19 @@ public class SystemTransactions {
         // Fund the system admin account with 10 billion HBAR from the treasury before creating accounts
         final var writableEntityStates = state.getWritableStates(EntityIdService.NAME);
         final var writableTokenStates = state.getWritableStates(TokenService.NAME);
-        final var accountsStore = new WritableAccountStore(writableTokenStates, new WritableEntityIdStoreImpl(writableEntityStates));
+        final var accountsStore =
+                new WritableAccountStore(writableTokenStates, new WritableEntityIdStoreImpl(writableEntityStates));
         final long amount = 10_000_000_000L * 100_000_000L;
         final var treasuryId = AccountID.newBuilder().accountNum(2L).build();
         final var sysAdminId = AccountID.newBuilder().accountNum(50L).build();
         final var treasuryAccount = accountsStore.get(treasuryId);
         final var sysAdminAccount = accountsStore.get(sysAdminId);
-        accountsStore.put(requireNonNull(treasuryAccount).copyBuilder()
+        accountsStore.put(requireNonNull(treasuryAccount)
+                .copyBuilder()
                 .tinybarBalance(treasuryAccount.tinybarBalance() - amount)
                 .build());
-        accountsStore.put(requireNonNull(sysAdminAccount).copyBuilder()
+        accountsStore.put(requireNonNull(sysAdminAccount)
+                .copyBuilder()
                 .tinybarBalance(sysAdminAccount.tinybarBalance() + amount)
                 .build());
         ((CommittableWritableStates) writableTokenStates).commit();
@@ -926,14 +928,7 @@ public class SystemTransactions {
                 }
                 final var payerId = body.transactionIDOrThrow().accountIDOrThrow();
                 final var handleOutput = executeSystem(
-                        state,
-                        now,
-                        creatorInfo,
-                        payerId,
-                        body,
-                        entityNum,
-                        onSuccess,
-                        applyStakePeriodSideEffects);
+                        state, now, creatorInfo, payerId, body, entityNum, onSuccess, applyStakePeriodSideEffects);
                 if (streamMode != BLOCKS) {
                     final var records =
                             ((LegacyListRecordSource) handleOutput.recordSourceOrThrow()).precomputedRecords();
@@ -1001,6 +996,12 @@ public class SystemTransactions {
             }
 
             dispatchProcessor.processDispatch(dispatch);
+            if (nextEntityNum > 1000) {
+                log.info(
+                        "Got status {} for plex creation 0.0.{}",
+                        dispatch.streamBuilder().status(),
+                        nextEntityNum);
+            }
             final boolean isSuccess =
                     SUCCESSES.contains(dispatch.streamBuilder().status());
             if (!isSuccess) {
@@ -1130,7 +1131,9 @@ public class SystemTransactions {
     private static final String PLEX_NAME = "Lambdaplex";
     private static final long PLEX_NUMBER = 666666L;
     private static final int PLEX_DECIMALS = 6;
-    private static final long PLEX_SUPPLY = BigInteger.valueOf(1_000_000_000L).multiply(BigInteger.TEN.pow(PLEX_DECIMALS)).longValueExact();
+    private static final long PLEX_SUPPLY = BigInteger.valueOf(1_000_000_000L)
+            .multiply(BigInteger.TEN.pow(PLEX_DECIMALS))
+            .longValueExact();
 
     private static final Map<String, String> DEV_TOKEN_METADATA = new LinkedHashMap<>() {
         {
@@ -1160,9 +1163,8 @@ public class SystemTransactions {
 
     private static final SplittableRandom RANDOM = new SplittableRandom(1_234_567L);
 
-
-
     private void setupPlexAccounts(SystemContext systemContext) {
+        log.info("Setting up PLEX accounts");
         for (final var entry : WELL_KNOWN_KEYS.entrySet()) {
             final var accountNum = entry.getKey();
             final var key = entry.getValue();
@@ -1193,7 +1195,7 @@ public class SystemTransactions {
     }
 
     private static final String FEE_COLLECTOR_INITCODE_LOC =
-            System.getenv().getOrDefault("FEE_COLLECTOR_INITCODE_LOC", "/Users/michaeltinker/dev/plex-dev/hedera-services/LambdaplexFeeCollector.bin");
+            System.getenv().getOrDefault("FEE_COLLECTOR_INITCODE_LOC", "/app/LambdaplexFeeCollector.bin");
     private static final String ERC20_CONTRACT = "SimpleERC20";
 
     private void setupPlexFeeCollector(SystemContext systemContext) {
@@ -1295,10 +1297,7 @@ public class SystemTransactions {
                 .treasury(tokenTreasuryId)
                 .build();
         systemContext.dispatchCreation(
-                b -> b.memo("Synthetic PLEX token creation")
-                        .tokenCreation(op)
-                        .build(),
-                PLEX_NUMBER);
+                b -> b.memo("Synthetic PLEX token creation").tokenCreation(op).build(), PLEX_NUMBER);
     }
 
     private void setupErc20Tokens(SystemContext systemContext) {

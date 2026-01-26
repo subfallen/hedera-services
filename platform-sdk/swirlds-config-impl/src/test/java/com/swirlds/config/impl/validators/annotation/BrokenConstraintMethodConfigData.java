@@ -6,7 +6,8 @@ import com.swirlds.config.api.validation.ConfigViolation;
 import com.swirlds.config.api.validation.annotation.ConstraintMethod;
 
 @ConfigData("method")
-public record BrokenConstraintMethodConfigData(@ConstraintMethod("check") boolean value) {
+public record BrokenConstraintMethodConfigData(
+        @ConstraintMethod("check") boolean value) {
 
     public ConfigViolation check() {
         return null;

@@ -7,5 +7,7 @@ import com.swirlds.config.api.ConfigProperty;
 
 @ConfigData("rates")
 public record RatesConfig(
-        @ConfigProperty(defaultValue = "25") @NetworkProperty int intradayChangeLimitPercent,
+        @ConfigProperty(defaultValue = "25") @NetworkProperty
+        int intradayChangeLimitPercent,
+
         @ConfigProperty(defaultValue = "1") @NetworkProperty long midnightCheckInterval) {}

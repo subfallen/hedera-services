@@ -186,7 +186,8 @@ public class TokenAssociateToAccountHandler extends BaseTokenHandler implements 
         return !tokenAssociationsLimited || (numAssociations + tokenIds.size() <= maxTokensPerAccount);
     }
 
-    private record Validated(@NonNull Account account, @NonNull List<Token> tokens) {}
+    private record Validated(
+            @NonNull Account account, @NonNull List<Token> tokens) {}
 
     @NonNull
     @Override

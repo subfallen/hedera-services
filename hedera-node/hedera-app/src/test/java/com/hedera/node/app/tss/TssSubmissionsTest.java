@@ -73,7 +73,8 @@ class TssSubmissionsTest {
                         adminConfig.timesToTrySubmission(),
                         adminConfig.distinctTxnIdsToTry(),
                         adminConfig.retryDelay(),
-                        onFailure);
+                        onFailure,
+                        null);
     }
 
     @Test
@@ -92,6 +93,7 @@ class TssSubmissionsTest {
                         adminConfig.timesToTrySubmission(),
                         adminConfig.distinctTxnIdsToTry(),
                         adminConfig.retryDelay(),
-                        onFailure);
+                        onFailure,
+                        null);
     }
 }

@@ -131,14 +131,11 @@ public class FieldByFieldMatcher<T> extends TypeSafeDiagnosingMatcher<T> {
                     final Object expectedValue = readMethod.invoke(expected);
                     final Object actualValue = readMethod.invoke(actual);
                     if (!haveEqualFieldValue(expectedValue, actualValue, fieldName)) {
-                        describeMismatch(
-                                """
+                        describeMismatch("""
                                     ****** Mismatch in field '%s' ******
                                     ****** Expected ***: %s
                                     ****** Actual *****: %s
-                                    """
-                                        .formatted(fieldName, expectedValue, actualValue),
-                                mismatch);
+                                    """.formatted(fieldName, expectedValue, actualValue), mismatch);
                         return false;
                     }
                 }

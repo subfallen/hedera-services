@@ -66,6 +66,7 @@ public class TssSubmissions {
                         adminConfig.timesToTrySubmission(),
                         adminConfig.distinctTxnIdsToTry(),
                         adminConfig.retryDelay(),
-                        onFailure);
+                        onFailure,
+                        null);
     }
 }

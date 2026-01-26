@@ -15,7 +15,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @param numSkippedSynthItems The number of synthetic items that were skipped.
  * @param entries The visible items.
  */
-public record VisibleItems(@NonNull AtomicInteger numSkippedSynthItems, @NonNull List<RecordStreamEntry> entries) {
+public record VisibleItems(
+        @NonNull AtomicInteger numSkippedSynthItems,
+        @NonNull List<RecordStreamEntry> entries) {
     /**
      * Constructs a new {@link VisibleItems} instance with a count of skipped synthetic items set to 0 and an
      * empty list of visible items.

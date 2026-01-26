@@ -12,4 +12,5 @@ import java.time.Duration;
  *                      levels and markers every updatePeriode.
  */
 @ConfigData("logging")
-public record InternalLoggingConfig(@ConfigProperty(defaultValue = "10s") Duration reloadConfigPeriod) {}
+public record InternalLoggingConfig(
+        @ConfigProperty(defaultValue = "10s") Duration reloadConfigPeriod) {}

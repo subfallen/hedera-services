@@ -85,7 +85,9 @@ public class OrderedComparison {
         return diff(compareList.firstList, compareList.secondList, recordDiffSummarizer);
     }
 
-    record CompareList(@NonNull List<RecordStreamEntry> firstList, @NonNull List<RecordStreamEntry> secondList) {}
+    record CompareList(
+            @NonNull List<RecordStreamEntry> firstList,
+            @NonNull List<RecordStreamEntry> secondList) {}
 
     @NonNull
     private static CompareList getCompareList(

@@ -12,7 +12,13 @@ public record DetailedInventory(
         @NonNull List<StockDetail> stock,
         @NonNull List<Movement> movements) {
 
-    public record Movement(@NonNull Date date, @NonNull Integer amount, @NonNull String operationUUID) {}
+    public record Movement(
+            @NonNull Date date,
+            @NonNull Integer amount,
+            @NonNull String operationUUID) {}
 
-    public record StockDetail(@NonNull BigDecimal unitaryPrice, @NonNull Date date, @NonNull Integer quantity) {}
+    public record StockDetail(
+            @NonNull BigDecimal unitaryPrice,
+            @NonNull Date date,
+            @NonNull Integer quantity) {}
 }

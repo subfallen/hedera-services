@@ -10,7 +10,8 @@ import java.util.function.Consumer;
  * @param handler the handler to call
  * @param data    the data to pass to the handler
  */
-record SequentialThreadTask(@NonNull Consumer<Object> handler, @NonNull Object data) {
+record SequentialThreadTask(
+        @NonNull Consumer<Object> handler, @NonNull Object data) {
 
     /**
      * Handle the task.

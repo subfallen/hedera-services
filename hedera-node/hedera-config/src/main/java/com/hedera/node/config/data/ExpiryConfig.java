@@ -7,7 +7,8 @@ import com.swirlds.config.api.ConfigProperty;
 
 @ConfigData("expiry")
 public record ExpiryConfig(
-        @ConfigProperty(defaultValue = "expiry-throttle.json") @NetworkProperty String throttleResource
+        @ConfigProperty(defaultValue = "expiry-throttle.json") @NetworkProperty
+        String throttleResource
         // @ConfigProperty(defaultValue =
         // "ACCOUNTS_GET,ACCOUNTS_GET_FOR_MODIFY,STORAGE_GET,STORAGE_GET,STORAGE_REMOVE,STORAGE_PUT")
         // List<MapAccessType> minCycleEntryCapacity

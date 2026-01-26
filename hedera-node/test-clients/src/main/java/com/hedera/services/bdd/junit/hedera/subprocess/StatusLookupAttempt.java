@@ -15,7 +15,9 @@ import org.hiero.consensus.model.status.PlatformStatus;
  * @param failureReason if non-null, the reason the status lookup failed
  */
 public record StatusLookupAttempt(
-        @NonNull Source source, @Nullable PlatformStatus status, @Nullable String failureReason) {
+        @NonNull Source source,
+        @Nullable PlatformStatus status,
+        @Nullable String failureReason) {
 
     /**
      * The source of the status lookup attempt.

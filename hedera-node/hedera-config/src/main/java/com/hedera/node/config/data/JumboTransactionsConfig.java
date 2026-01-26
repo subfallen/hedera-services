@@ -10,10 +10,20 @@ import java.util.Set;
 
 @ConfigData("jumboTransactions")
 public record JumboTransactionsConfig(
-        @ConfigProperty(defaultValue = "true") @NetworkProperty boolean isEnabled,
-        @ConfigProperty(defaultValue = "133120") @NetworkProperty int maxTxnSize,
-        @ConfigProperty(defaultValue = "131072") @NetworkProperty int ethereumMaxCallDataSize,
-        @ConfigProperty(defaultValue = "callEthereum") @NodeProperty Set<String> grpcMethodNames,
+        @ConfigProperty(defaultValue = "true") @NetworkProperty
+        boolean isEnabled,
+
+        @ConfigProperty(defaultValue = "133120") @NetworkProperty
+        int maxTxnSize,
+
+        @ConfigProperty(defaultValue = "131072") @NetworkProperty
+        int ethereumMaxCallDataSize,
+
+        @ConfigProperty(defaultValue = "callEthereum") @NodeProperty
+        Set<String> grpcMethodNames,
+
         @ConfigProperty(defaultValue = "EthereumTransaction") @NodeProperty
-                Set<HederaFunctionality> allowedHederaFunctionalities,
-        @ConfigProperty(defaultValue = "133120") @NetworkProperty long maxBytesPerSec) {}
+        Set<HederaFunctionality> allowedHederaFunctionalities,
+
+        @ConfigProperty(defaultValue = "133120") @NetworkProperty
+        long maxBytesPerSec) {}

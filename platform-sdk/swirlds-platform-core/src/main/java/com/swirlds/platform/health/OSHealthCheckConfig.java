@@ -25,9 +25,17 @@ import com.swirlds.config.api.ConfigProperty;
  */
 @ConfigData("os.health")
 public record OSHealthCheckConfig(
-        @ConfigProperty(value = "minClockCallsPerSec", defaultValue = "5000000") long minClockCallsPerSec,
-        @ConfigProperty(value = "entropyTimeoutMillis", defaultValue = "10") long entropyTimeoutMillis,
+        @ConfigProperty(value = "minClockCallsPerSec", defaultValue = "5000000")
+        long minClockCallsPerSec,
+
+        @ConfigProperty(value = "entropyTimeoutMillis", defaultValue = "10")
+        long entropyTimeoutMillis,
+
         @ConfigProperty(value = "maxRandomNumberGenerationMillis", defaultValue = "10")
-                long maxRandomNumberGenerationMillis,
-        @ConfigProperty(value = "fileReadTimeoutMillis", defaultValue = "50") long fileReadTimeoutMillis,
-        @ConfigProperty(value = "maxFileReadMillis", defaultValue = "10") long maxFileReadMillis) {}
+        long maxRandomNumberGenerationMillis,
+
+        @ConfigProperty(value = "fileReadTimeoutMillis", defaultValue = "50")
+        long fileReadTimeoutMillis,
+
+        @ConfigProperty(value = "maxFileReadMillis", defaultValue = "10")
+        long maxFileReadMillis) {}

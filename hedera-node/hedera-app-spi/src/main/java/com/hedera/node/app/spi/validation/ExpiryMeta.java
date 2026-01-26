@@ -14,7 +14,8 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * @param autoRenewPeriod the number of seconds between auto-renewals
  * @param autoRenewAccountId the id of the account to be charged for auto-renewals
  */
-public record ExpiryMeta(long expiry, long autoRenewPeriod, @Nullable AccountID autoRenewAccountId) {
+public record ExpiryMeta(
+        long expiry, long autoRenewPeriod, @Nullable AccountID autoRenewAccountId) {
 
     /**
      * A sentinel value indicating some part of the metadata is not available..

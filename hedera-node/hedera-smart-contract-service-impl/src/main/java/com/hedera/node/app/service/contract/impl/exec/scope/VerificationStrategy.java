@@ -85,9 +85,10 @@ public interface VerificationStrategy {
             return switch (decideForPrimitive(key)) {
                 case VALID -> true;
                 case INVALID -> false;
-                    // Note the Ethereum sender's key has necessarily signed
-                case DELEGATE_TO_CRYPTOGRAPHIC_VERIFICATION -> Objects.equals(key, maybeEthSenderKey)
-                        || context.keyVerifier().verificationFor(key).passed();
+                // Note the Ethereum sender's key has necessarily signed
+                case DELEGATE_TO_CRYPTOGRAPHIC_VERIFICATION ->
+                    Objects.equals(key, maybeEthSenderKey)
+                            || context.keyVerifier().verificationFor(key).passed();
             };
         };
     }

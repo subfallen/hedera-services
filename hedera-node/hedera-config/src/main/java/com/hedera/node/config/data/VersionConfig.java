@@ -16,6 +16,7 @@ import com.swirlds.config.api.ConfigProperty;
 @ConfigData
 public record VersionConfig(
         @ConfigProperty(value = "hedera.services.version", defaultValue = "0.0.0") @NetworkProperty
-                SemanticVersion servicesVersion,
+        SemanticVersion servicesVersion,
+
         @ConfigProperty(value = "hapi.proto.version", defaultValue = "0.0.0") @NetworkProperty
-                SemanticVersion hapiVersion) {}
+        SemanticVersion hapiVersion) {}

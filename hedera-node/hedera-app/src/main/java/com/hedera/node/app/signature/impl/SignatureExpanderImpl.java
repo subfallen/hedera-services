@@ -96,16 +96,16 @@ public final class SignatureExpanderImpl implements SignatureExpander {
 
         // The key may be of some arbitrary depth and complexity, so we need to recursively expand it.
         switch (key.key().kind()) {
-                // If the key is an ED25519 cryptographic key, then we simply iterate through the list of signature
-                // pairs and find the one that matches the key.
+            // If the key is an ED25519 cryptographic key, then we simply iterate through the list of signature
+            // pairs and find the one that matches the key.
             case ED25519 -> {
                 final var match = findMatch(key, originals);
                 if (match != null) {
                     expanded.add(new ExpandedSignaturePair(key, key.ed25519OrThrow(), null, match));
                 }
             }
-                // If the key is an ECDSA_SECP256K1 cryptographic key, then we simply iterate through the list of
-                // signature pairs and find the one that matches the key, **and then decompress it**.
+            // If the key is an ECDSA_SECP256K1 cryptographic key, then we simply iterate through the list of
+            // signature pairs and find the one that matches the key, **and then decompress it**.
             case ECDSA_SECP256K1 -> {
                 final var match = findMatch(key, originals);
                 if (match != null) {
@@ -116,15 +116,16 @@ public final class SignatureExpanderImpl implements SignatureExpander {
                     }
                 }
             }
-                // If the key is a key list, then we need to recursively expand each key in the list.
+            // If the key is a key list, then we need to recursively expand each key in the list.
             case KEY_LIST -> key.keyListOrElse(KeyList.DEFAULT).keys().forEach(k -> expand(k, originals, expanded));
-                // If the key is a threshold key, then we need to recursively expand each key in the threshold key's
-                // list. At this point in the process we don't care whether we have enough keys for the threshold or
-                // not, we just expand whatever we find.
-            case THRESHOLD_KEY -> key.thresholdKeyOrElse(ThresholdKey.DEFAULT)
-                    .keysOrElse(KeyList.DEFAULT)
-                    .keys()
-                    .forEach(k -> expand(k, originals, expanded));
+            // If the key is a threshold key, then we need to recursively expand each key in the threshold key's
+            // list. At this point in the process we don't care whether we have enough keys for the threshold or
+            // not, we just expand whatever we find.
+            case THRESHOLD_KEY ->
+                key.thresholdKeyOrElse(ThresholdKey.DEFAULT)
+                        .keysOrElse(KeyList.DEFAULT)
+                        .keys()
+                        .forEach(k -> expand(k, originals, expanded));
             case ECDSA_384, RSA_3072, CONTRACT_ID, DELEGATABLE_CONTRACT_ID, UNSET -> {
                 // We don't support these, so we won't expand them
             }
@@ -217,11 +218,11 @@ public final class SignatureExpanderImpl implements SignatureExpander {
     public static Key asKey(@NonNull final SignaturePair pair) {
         return switch (pair.signature().kind()) {
             case ED25519 -> Key.newBuilder().ed25519(pair.pubKeyPrefix()).build();
-            case ECDSA_SECP256K1 -> Key.newBuilder()
-                    .ecdsaSecp256k1(pair.pubKeyPrefix())
-                    .build();
-            case RSA_3072, ECDSA_384, CONTRACT, UNSET -> throw new IllegalArgumentException(
-                    "Unsupported cryptographic key: " + pair.signature().kind());
+            case ECDSA_SECP256K1 ->
+                Key.newBuilder().ecdsaSecp256k1(pair.pubKeyPrefix()).build();
+            case RSA_3072, ECDSA_384, CONTRACT, UNSET ->
+                throw new IllegalArgumentException(
+                        "Unsupported cryptographic key: " + pair.signature().kind());
         };
     }
 }

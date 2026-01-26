@@ -254,7 +254,8 @@ public class TokenDissociateFromAccountHandler implements TransactionHandler {
         return new ValidatedResult(acct, dissociations);
     }
 
-    private record ValidatedResult(@NonNull Account account, @NonNull List<Dissociation> dissociations) {}
+    private record ValidatedResult(
+            @NonNull Account account, @NonNull List<Dissociation> dissociations) {}
 
     private record Dissociation(
             @Nullable Token token,

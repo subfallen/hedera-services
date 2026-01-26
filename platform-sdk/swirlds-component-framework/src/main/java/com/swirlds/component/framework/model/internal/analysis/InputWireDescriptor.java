@@ -12,4 +12,5 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * @param taskSchedulerName the name of the task scheduler the input wire is bound to
  * @param name              the name of the input wire
  */
-public record InputWireDescriptor(@NonNull String taskSchedulerName, @NonNull String name) {}
+public record InputWireDescriptor(
+        @NonNull String taskSchedulerName, @NonNull String name) {}

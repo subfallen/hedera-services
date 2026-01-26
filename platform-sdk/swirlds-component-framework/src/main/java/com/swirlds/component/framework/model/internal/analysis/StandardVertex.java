@@ -171,11 +171,12 @@ public class StandardVertex implements ModelVertex {
                 switch (metaType) {
                     case SUBSTITUTION -> SUBSTITUTION_COLOR;
                     case GROUP -> GROUP_COLOR;
-                    case SCHEDULER -> switch (type) {
-                        case DIRECT -> DIRECT_SCHEDULER_COLOR;
-                        case DIRECT_THREADSAFE -> DIRECT_SCHEDULER_COLOR;
-                        default -> SCHEDULER_COLOR;
-                    };
+                    case SCHEDULER ->
+                        switch (type) {
+                            case DIRECT -> DIRECT_SCHEDULER_COLOR;
+                            case DIRECT_THREADSAFE -> DIRECT_SCHEDULER_COLOR;
+                            default -> SCHEDULER_COLOR;
+                        };
                 };
 
         final StringBuilder sb = new StringBuilder();

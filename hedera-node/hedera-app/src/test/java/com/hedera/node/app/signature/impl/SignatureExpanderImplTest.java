@@ -561,8 +561,9 @@ final class SignatureExpanderImplTest extends AppTestBase implements Scenarios {
                     case THRESHOLD_KEY -> sufficientSignatures(key.thresholdKeyOrThrow(), fullPrefix);
                     case ED25519 -> List.of(ed25519Sig(key, fullPrefix));
                     case ECDSA_SECP256K1 -> List.of(ecdsaSig(key, fullPrefix));
-                    default -> throw new IllegalArgumentException(
-                            "Unsupported key type: " + key.key().kind());
+                    default ->
+                        throw new IllegalArgumentException(
+                                "Unsupported key type: " + key.key().kind());
                 };
         return list.stream().distinct().collect(Collectors.toList()); // No duplicate signatures please!
     }

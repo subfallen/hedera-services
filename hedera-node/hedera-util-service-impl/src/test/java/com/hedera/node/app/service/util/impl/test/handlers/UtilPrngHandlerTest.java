@@ -201,9 +201,7 @@ class UtilPrngHandlerTest {
      * @param expected
      */
     @ParameterizedTest
-    @CsvSource(
-            textBlock =
-                    """
+    @CsvSource(textBlock = """
             7, 4, 3
             -7, 4, 1
             -1, 4, 3

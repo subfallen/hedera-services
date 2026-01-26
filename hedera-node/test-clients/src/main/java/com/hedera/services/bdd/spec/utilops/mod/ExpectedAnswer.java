@@ -19,7 +19,8 @@ import java.util.Set;
  * @param answerOnlyStatus a failure status if just the ANSWER_ONLY query should fail
  */
 public record ExpectedAnswer(
-        @Nullable Set<ResponseCodeEnum> costAnswerStatus, @Nullable Set<ResponseCodeEnum> answerOnlyStatus) {
+        @Nullable Set<ResponseCodeEnum> costAnswerStatus,
+        @Nullable Set<ResponseCodeEnum> answerOnlyStatus) {
     public static ExpectedAnswer onCostAnswer(@NonNull ResponseCodeEnum... statuses) {
         return new ExpectedAnswer(EnumSet.copyOf(asList(statuses)), null);
     }

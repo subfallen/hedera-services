@@ -29,7 +29,8 @@ import java.util.function.BiFunction;
  * @param alias the EVM address alias to give as initial identifier (null if none)
  */
 @SuppressWarnings({"java:S6218", "java:S3358"})
-public record InitialAccountIdentifiers(@Nullable Key key, @Nullable byte[] alias) {
+public record InitialAccountIdentifiers(
+        @Nullable Key key, @Nullable byte[] alias) {
 
     private static final int COMPRESSED_SECP256K1_PUBLIC_KEY_LEN = 33;
     public static final String KEY_FOR_INCONGRUENT_ALIAS = "keyForIncongruentAlias";

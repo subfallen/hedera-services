@@ -8,4 +8,6 @@ import com.swirlds.config.api.ConfigProperty;
 public record MixedAnnotatedConfig(
         @ConfigProperty(defaultValue = "true") boolean notSureProperty,
         @ConfigProperty(defaultValue = "true") @NodeProperty boolean nodeProperty,
-        @ConfigProperty(defaultValue = "true") @NetworkProperty boolean networkProperty) {}
+
+        @ConfigProperty(defaultValue = "true") @NetworkProperty
+        boolean networkProperty) {}

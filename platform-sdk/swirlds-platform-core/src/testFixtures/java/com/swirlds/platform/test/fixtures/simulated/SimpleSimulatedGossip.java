@@ -251,7 +251,8 @@ public class SimpleSimulatedGossip {
      * @param gossipMessage the message to gossip
      * @param arrivalTime   the time to send the message
      */
-    public record Payload(@NonNull GossipMessage gossipMessage, @NonNull Instant arrivalTime) {
+    public record Payload(
+            @NonNull GossipMessage gossipMessage, @NonNull Instant arrivalTime) {
 
         @Override
         public String toString() {

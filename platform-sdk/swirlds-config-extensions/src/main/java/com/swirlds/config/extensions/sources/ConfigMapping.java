@@ -12,7 +12,8 @@ import java.util.Objects;
  * @param mappedName   new property name
  * @param originalName original property name
  */
-public record ConfigMapping(@NonNull String mappedName, @NonNull String originalName) {
+public record ConfigMapping(
+        @NonNull String mappedName, @NonNull String originalName) {
 
     /**
      * Creates a new {@code ConfigMapping}.

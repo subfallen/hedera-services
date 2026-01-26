@@ -18,6 +18,7 @@ import com.swirlds.config.api.Configuration;
 import com.swirlds.metrics.api.Metrics;
 import com.swirlds.state.lifecycle.Service;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.InstantSource;
@@ -76,15 +77,16 @@ public interface AppContext {
          * if the transaction cannot be submitted after the given number of attempts. The message of the exception
          * will be the reason for the final failure.
          *
-         * @param selfId the id of the node submitting the transaction
-         * @param consensusNow an estimate of current consensus time
-         * @param validDuration the duration for which the transaction is valid
-         * @param spec a consumer that will populate the transaction body
-         * @param executor the executor to use for submitting the transaction
-         * @param timesToTry the number of times to try submitting the transaction
+         * @param selfId               the id of the node submitting the transaction
+         * @param consensusNow         an estimate of current consensus time
+         * @param validDuration        the duration for which the transaction is valid
+         * @param spec                 a consumer that will populate the transaction body
+         * @param executor             the executor to use for submitting the transaction
+         * @param timesToTry           the number of times to try submitting the transaction
          * @param distinctTxnIdsPerTry the number of distinct transaction ids to try per attempt
-         * @param retryDelay the delay between retries
-         * @param onFailure the consumer to call when a submission attempt fails
+         * @param retryDelay           the delay between retries
+         * @param onFailure            the consumer to call when a submission attempt fails
+         * @param payerId              the optional payer account id to use in the transaction id
          * @return a future that will complete when the transaction is submitted
          */
         default CompletableFuture<Void> submitFuture(
@@ -96,10 +98,12 @@ public interface AppContext {
                 final int timesToTry,
                 final int distinctTxnIdsPerTry,
                 @NonNull final Duration retryDelay,
-                @NonNull final BiConsumer<TransactionBody, String> onFailure) {
+                @NonNull final BiConsumer<TransactionBody, String> onFailure,
+                @Nullable final AccountID payerId) {
             final var attemptsLeft = new AtomicInteger(timesToTry);
             final var validStartTime = new AtomicReference<>(consensusNow);
             final var txnIdValidDuration = new com.hedera.hapi.node.base.Duration(validDuration.toSeconds());
+            final var effectivePayerId = payerId != null ? payerId : selfId;
             return CompletableFuture.runAsync(
                     () -> {
                         var fatalFailure = false;
@@ -111,8 +115,8 @@ public interface AppContext {
                                 final var builder = TransactionBody.newBuilder()
                                         .nodeAccountID(selfId)
                                         .transactionValidDuration(txnIdValidDuration)
-                                        .transactionID(
-                                                new TransactionID(asTimestamp(validStartTime.get()), selfId, false, 0));
+                                        .transactionID(new TransactionID(
+                                                asTimestamp(validStartTime.get()), effectivePayerId, false, 0));
                                 spec.accept(builder);
                                 body = builder.build();
                                 try {

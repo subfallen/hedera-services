@@ -25,7 +25,7 @@ import org.hiero.consensus.state.signed.ReservedSignedState;
 public class ReconnectProtocolFactoryImpl implements ReconnectProtocolFactory {
 
     /**
-     * {@inheritDoc}
+     * Creates a reconnect state sync protocol with reconnect-specific throttling and metrics.
      */
     @Override
     @NonNull
