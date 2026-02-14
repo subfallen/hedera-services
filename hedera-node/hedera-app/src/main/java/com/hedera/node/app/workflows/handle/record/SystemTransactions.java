@@ -436,6 +436,8 @@ public class SystemTransactions {
         setupPlexFeeCollector(systemContext);
         setupSimpleErc20Initcode(systemContext);
         setupErc20Tokens(systemContext);
+        setupMockPullOracleInitcode(systemContext);
+        setupMockPullOracle(systemContext, MOCK_SUPRA_PULL_ORACLE);
     }
 
     /**
@@ -1108,6 +1110,8 @@ public class SystemTransactions {
             "03ac69bc0610b41fee3b8f66961138e8955685a723ef08d4b1d57a179548ed0cc8";
     private static final long MASTER_ID = 4589187L;
     private static final long SIMPLE_ERC20_INITCODE_ID = 1243L;
+    private static final long MOCK_SUPRA_PULL_INITCODE_ID = 8877L;
+    private static final long MOCK_SUPRA_PULL_ORACLE = 888777L;
     private static final long FEE_COLLECTOR_ID = 1234567L;
     private static final Key MASTER_KEY =
             Key.newBuilder().ed25519(Bytes.fromHex(A4589187_PUBLIC_KEY)).build();
@@ -1197,6 +1201,7 @@ public class SystemTransactions {
     private static final String FEE_COLLECTOR_INITCODE_LOC =
             System.getenv().getOrDefault("FEE_COLLECTOR_INITCODE_LOC", "/app/LambdaplexFeeCollector.bin");
     private static final String ERC20_CONTRACT = "SimpleERC20";
+    private static final String MOCK_SUPRA_PULL_ORACLE_CONTRACT = "MockSupraOraclePull";
 
     private void setupPlexFeeCollector(SystemContext systemContext) {
         final byte[] initcode;
@@ -1244,6 +1249,28 @@ public class SystemTransactions {
         }
     }
 
+    private void setupMockPullOracleInitcode(SystemContext systemContext) {
+        final byte[] initcode;
+        try {
+            final var slash = FEE_COLLECTOR_INITCODE_LOC.lastIndexOf("/");
+            final var loc = FEE_COLLECTOR_INITCODE_LOC.substring(0, slash) + File.separator + MOCK_SUPRA_PULL_ORACLE_CONTRACT + ".bin";
+            initcode = Files.readAllBytes(Paths.get(loc));
+            final var op = FileCreateTransactionBody.newBuilder()
+                    .contents(Bytes.wrap(initcode))
+                    .build();
+            systemContext.dispatchCreation(
+                    b -> b.memo("Mock Supra pull oracle initcode creation")
+                            .transactionID(TransactionID.newBuilder()
+                                    .accountID(AccountID.newBuilder().accountNum(MASTER_ID))
+                                    .build())
+                            .fileCreate(op)
+                            .build(),
+                    MOCK_SUPRA_PULL_INITCODE_ID);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     private static final String CONSTRUCTOR_ABI =
             "{\"inputs\":[{\"internalType\":\"string\",\"name\":\"name_\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"symbol_\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"}";
 
@@ -1258,6 +1285,22 @@ public class SystemTransactions {
                 .build();
         systemContext.dispatchCreation(
                 b -> b.memo("Synth ERC-20 " + symbol + " creation")
+                        .transactionID(TransactionID.newBuilder()
+                                .accountID(AccountID.newBuilder().accountNum(MASTER_ID))
+                                .build())
+                        .contractCreateInstance(op)
+                        .build(),
+                contractId);
+    }
+
+    private void setupMockPullOracle(SystemContext systemContext, long contractId) {
+        final var op = ContractCreateTransactionBody.newBuilder()
+                .fileID(FileID.newBuilder().fileNum(MOCK_SUPRA_PULL_INITCODE_ID))
+                .autoRenewPeriod(new Duration(7776000L))
+                .gas(4_000_000)
+                .build();
+        systemContext.dispatchCreation(
+                b -> b.memo("Mock Supra pull oracle creation")
                         .transactionID(TransactionID.newBuilder()
                                 .accountID(AccountID.newBuilder().accountNum(MASTER_ID))
                                 .build())
