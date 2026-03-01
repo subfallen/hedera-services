@@ -11,3 +11,4 @@
 !hedera-node/config.txt
 !hedera-node/data/keys/generate.sh
 !hedera-node/data/config/api-permission.properties
+!hedera-node/configuration/dev/genesis-network.json

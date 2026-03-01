@@ -16,6 +16,7 @@ COPY hedera-node/log4j2.xml /app/log4j2.xml
 COPY hedera-node/config.txt /app/config.txt
 COPY hedera-node/data/keys/generate.sh /app/data/keys/generate.sh
 COPY hedera-node/data/config/api-permission.properties /app/data/config/api-permission.properties
+COPY hedera-node/configuration/dev/genesis-network.json /app/data/config/genesis-network.json
 
 # Copy application JAR
 COPY hedera-node/hedera-app/build/libs/app-0.72.0-SNAPSHOT.jar /app/app.jar
