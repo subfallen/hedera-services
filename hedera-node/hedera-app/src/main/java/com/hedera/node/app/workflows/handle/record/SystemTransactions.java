@@ -1176,7 +1176,7 @@ public class SystemTransactions {
                     b -> b.memo("Synthetic plex account creation")
                             .cryptoCreateAccount(CryptoCreateTransactionBody.newBuilder()
                                     .key(key)
-                                    .maxAutomaticTokenAssociations(accountNum != 9266133L ? (NUM_TOKENS + 1) : 0)
+                                    .maxAutomaticTokenAssociations(accountNum != 9266133L ? (NUM_TOKENS + 1) : -1)
                                     .initialBalance(INITIAL_BALANCE)
                                     .autoRenewPeriod(new Duration(7776000L))
                                     .build())
