@@ -16,6 +16,7 @@ import static com.hedera.services.bdd.spec.utilops.UtilVerbs.withOpContext;
 import static com.hedera.services.bdd.suites.HapiSuite.ONE_HBAR;
 import static com.hedera.services.bdd.suites.crypto.CryptoTransferSuite.sdec;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.ACCOUNTS_FEE_USD;
+import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.AIRDROPS_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.AIRDROP_CANCEL_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.AIRDROP_CLAIM_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.ATOMIC_BATCH_BASE_FEE_USD;
@@ -29,6 +30,9 @@ import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleCon
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.CONS_SUBMIT_MESSAGE_WITH_CUSTOM_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.CONS_UPDATE_TOPIC_BASE_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.CONS_UPDATE_TOPIC_INCLUDED_KEYS;
+import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.CONTRACT_CREATE_BASE_FEE_USD;
+import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.CONTRACT_CREATE_INCLUDED_HOOK_UPDATES;
+import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.CONTRACT_CREATE_INCLUDED_KEYS;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.CRYPTO_APPROVE_ALLOWANCE_BASE_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.CRYPTO_APPROVE_ALLOWANCE_EXTRA_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.CRYPTO_APPROVE_ALLOWANCE_INCLUDED_COUNT;
@@ -64,6 +68,8 @@ import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleCon
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.PROCESSING_BYTES_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.SIGNATURE_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.STATE_BYTES_FEE_USD;
+import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.TOKEN_AIRDROPS_INCLUDED_COUNT;
+import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.TOKEN_AIRDROP_BASE_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.TOKEN_ASSOCIATE_BASE_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.TOKEN_ASSOCIATE_EXTRA_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.TOKEN_ASSOCIATE_INCLUDED_TOKENS;
@@ -94,6 +100,7 @@ import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleCon
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.TOKEN_UPDATE_NFT_FEE;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.TOKEN_WIPE_BASE_FEE_USD;
 import static com.hedera.services.bdd.suites.hip1261.utils.SimpleFeesScheduleConstantsInUsd.UTIL_PRNG_BASE_FEE_USD;
+import static java.util.Objects.requireNonNull;
 import static org.hiero.hapi.support.fees.Extra.PROCESSING_BYTES;
 import static org.hiero.hapi.support.fees.Extra.SIGNATURES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -104,6 +111,7 @@ import com.hedera.services.bdd.spec.HapiSpecOperation;
 import com.hedera.services.bdd.spec.SpecOperation;
 import com.hedera.services.bdd.spec.utilops.CustomSpecAssert;
 import com.hederahashgraph.api.proto.java.Transaction;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -311,6 +319,42 @@ public class FeesChargingUtils {
         });
     }
 
+    public static HapiSpecOperation validateChargedUsdFromRecordWithTxnSize(
+            String txnId, IntToDoubleFunction expectedFeeUsd, double allowedPercentDifference) {
+        return withOpContext((spec, log) -> {
+            final int signedTxnSize = signedTxnSizeFor(spec, txnId);
+            final double expectedFee = expectedFeeUsd.applyAsDouble(signedTxnSize);
+
+            final var subOp = getTxnRecord(txnId).assertingNothingAboutHashes();
+            allRunFor(spec, subOp);
+            final var record = subOp.getResponseRecord();
+
+            final long chargedTinyBars = record.getTransactionFee();
+            if (chargedTinyBars <= 0) {
+                throw new AssertionError("Expected positive charged fee but was" + chargedTinyBars);
+            }
+
+            final var rate = record.getReceipt().getExchangeRate().getCurrentRate();
+            final long hbarEquiv = rate.getHbarEquiv();
+            final long centEquiv = rate.getCentEquiv();
+
+            // Convert tinybars to USD
+            final double chargedUsd = (1.0 * chargedTinyBars)
+                    / ONE_HBAR // tinybars -> HBAR
+                    / hbarEquiv // HBAR -> "rate HBAR"
+                    * centEquiv // "rate HBAR" -> cents
+                    / 100.0; // cents -> USD
+
+            assertEquals(
+                    expectedFee,
+                    chargedUsd,
+                    (allowedPercentDifference / 100.0) * expectedFee,
+                    String.format(
+                            "%s fee (%s) more than %.2f percent different than expected!",
+                            sdec(chargedUsd, 4), txnId, allowedPercentDifference));
+        });
+    }
+
     /**
      * Calculates the <em>bytes-dependent portion</em> of the node fee for a transaction.
      *
@@ -332,16 +376,16 @@ public class FeesChargingUtils {
      * @return the bytes-dependent portion of the node fee in USD
      *         (0.0 if transaction fits within included bytes)
      */
-    public static double expectedFeeFromBytesFor(HapiSpec spec, Logger opLog, String txnName) {
-        final var txnBytes = spec.registry().getBytes(txnName);
-        final var txnSize = txnBytes.length;
+    public static double expectedFeeFromBytesFor(HapiSpec spec, Logger opLog, String txnName)
+            throws InvalidProtocolBufferException {
+        final var signedTxnSize = signedTxnSizeFor(spec, txnName);
 
-        final var nodeBytesOverage = Math.max(0, txnSize - NODE_INCLUDED_BYTES);
+        final var nodeBytesOverage = Math.max(0, signedTxnSize - NODE_INCLUDED_BYTES);
         double expectedFee = nodeBytesOverage * PROCESSING_BYTES_FEE_USD * (1 + NETWORK_MULTIPLIER);
 
         opLog.info(
                 "Transaction size: {} bytes, node bytes overage: {}, expected fee: {}",
-                txnSize,
+                signedTxnSize,
                 nodeBytesOverage,
                 expectedFee);
         return expectedFee;
@@ -2030,7 +2074,7 @@ public class FeesChargingUtils {
     }
 
     /**
-     * Overload for AtomicBatch with no bytes.
+     * Overload when extras are provided in a map.
      */
     public static double expectedAtomicBatchFullFeeUsd(final Map<Extra, Long> extras) {
         return expectedAtomicBatchFullFeeUsd(
@@ -2171,7 +2215,7 @@ public class FeesChargingUtils {
     }
 
     /**
-     * Overload for FileDelete with no bytes.
+     * Overload when extras are provided in a map.
      */
     public static double expectedFileDeleteFullFeeUsd(final Map<Extra, Long> extras) {
         return expectedFileDeleteFullFeeUsd(
@@ -2207,7 +2251,7 @@ public class FeesChargingUtils {
     }
 
     /**
-     * Overload for FileAppend with no bytes.
+     * Overload when extras are provided in a map.
      */
     public static double expectedFileAppendFullFeeUsd(final Map<Extra, Long> extras) {
         return expectedFileAppendFullFeeUsd(
@@ -2238,12 +2282,28 @@ public class FeesChargingUtils {
     }
 
     /**
-     * Overload for Prng with no bytes.
+     * Overload when extras are provided in a map.
      */
     public static double expectedPrngFullFeeUsd(final Map<Extra, Long> extras) {
         return expectedPrngFullFeeUsd(
                 extras.getOrDefault(Extra.SIGNATURES, 0L),
                 Math.toIntExact(extras.getOrDefault(Extra.PROCESSING_BYTES, 0L)));
+    }
+
+    // -------- TokenAirdrop simple fees utils ---------//
+
+    /**
+     * TokenAirdrop fee add-on (on top of CryptoTransfer fees):
+     * airdrop fee = TOKEN_AIRDROP_BASE_FEE_USD
+     *                   + AIRDROPS_FEE_USD * max(0, airdropsCount - TOKEN_AIRDROPS_INCLUDED_COUNT)
+     */
+    private static double expectedTokenAirdropSurchargeUsd(long airdropsCount) {
+        final long airdropExtras = Math.max(0L, airdropsCount - TOKEN_AIRDROPS_INCLUDED_COUNT);
+        return TOKEN_AIRDROP_BASE_FEE_USD + airdropExtras * AIRDROPS_FEE_USD;
+    }
+
+    public static double expectedTokenAirdropSurchargeUsd(final Map<Extra, Long> extras) {
+        return expectedTokenAirdropSurchargeUsd(extras.getOrDefault(Extra.AIRDROPS, 0L));
     }
 
     // -------- TokenClaimAirdrop simple fees utils ---------//
@@ -2268,7 +2328,7 @@ public class FeesChargingUtils {
     }
 
     /**
-     * Overload for TokenClaimAirdrop with no bytes.
+     * Overload when extras are provided in a map.
      */
     public static double expectedTokenClaimAirdropFullFeeUsd(final Map<Extra, Long> extras) {
         return expectedTokenClaimAirdropFullFeeUsd(
@@ -2297,7 +2357,7 @@ public class FeesChargingUtils {
     }
 
     /**
-     * Overload for TokenCancelAirdrop with no bytes.
+     * Overload when extras are provided in a map.
      */
     public static double expectedTokenCancelAirdropFullFeeUsd(final Map<Extra, Long> extras) {
         return expectedTokenCancelAirdropFullFeeUsd(
@@ -2326,7 +2386,7 @@ public class FeesChargingUtils {
     }
 
     /**
-     * Overload for TokenReject with no bytes.
+     * Overload when extras are provided in a map.
      */
     public static double expectedTokenRejectFullFeeUsd(final Map<Extra, Long> extras) {
         return expectedTokenRejectFullFeeUsd(
@@ -2356,13 +2416,76 @@ public class FeesChargingUtils {
     }
 
     /**
-     * Overload for TokenFeeScheduleUpdate with no bytes.
+     * Overload when extras are provided in a map.
      */
     public static double expectedTokenFeeScheduleUpdateFullFeeUsd(final Map<Extra, Long> extras) {
         return expectedTokenFeeScheduleUpdateFullFeeUsd(
                 extras.getOrDefault(Extra.SIGNATURES, 0L),
                 Math.toIntExact(extras.getOrDefault(Extra.PROCESSING_BYTES, 0L)));
     }
+
+    // -------- ContractCreate simple fees utils ---------//
+
+    /**
+     * SimpleFees formula for ContractCreate:
+     * node    = NODE_BASE + SIGNATURE_FEE * max(0, sigs - includedSigsNode + nodeFeeFromBytesUsd(txnSize))
+     * network = node * NETWORK_MULTIPLIER
+     * service = CONTRACT_CREATE_BASE + HOOK_UPDATES_FEE * max(0, hooks - includedHooks) + KEYS_FEE * max(0, keys - includedKeys)
+     * total   = node + network + service
+     */
+    public static double expectedContractCreateSimpleFeesUsd(long sigs, long hooks, long keys, int txnSize) {
+        // ----- node fees -----
+        final long sigExtrasNode = Math.max(0L, sigs - NODE_INCLUDED_SIGNATURES);
+        final double nodeExtrasFee = sigExtrasNode * SIGNATURE_FEE_USD;
+        final double nodeFee = NODE_BASE_FEE_USD + nodeExtrasFee + nodeFeeFromBytesUsd(txnSize);
+
+        // ----- network fees -----
+        final double networkFee = nodeFee * NETWORK_MULTIPLIER;
+
+        // ----- service fees -----
+        final long hookExtrasService = Math.max(0L, hooks - CONTRACT_CREATE_INCLUDED_HOOK_UPDATES);
+        final double serviceHooksExtrasFee = hookExtrasService * HOOK_UPDATES_FEE_USD;
+
+        final long keysExtrasService = Math.max(0L, keys - CONTRACT_CREATE_INCLUDED_KEYS);
+        final double serviceKeysExtrasFee = keysExtrasService * KEYS_FEE_USD;
+
+        final double serviceFee = CONTRACT_CREATE_BASE_FEE_USD + serviceHooksExtrasFee + serviceKeysExtrasFee;
+
+        return nodeFee + networkFee + serviceFee;
+    }
+
+    /**
+     * Overload when extras are provided in a map.
+     */
+    public static double expectedContractCreateSimpleFeesUsd(final Map<Extra, Long> extras) {
+        return expectedContractCreateSimpleFeesUsd(
+                extras.getOrDefault(Extra.SIGNATURES, 0L),
+                extras.getOrDefault(Extra.HOOK_UPDATES, 0L),
+                extras.getOrDefault(Extra.KEYS, 0L),
+                Math.toIntExact(extras.getOrDefault(Extra.PROCESSING_BYTES, 0L)));
+    }
+
+    /**
+     * Gets the charged gas for a ContractCreate inner transaction, using the parent transaction's exchange rate to convert to USD.
+     */
+    public static double getChargedGasForContractCreateInnerTxn(
+            @NonNull final HapiSpec spec, @NonNull final String txn, @NonNull final String parent) {
+        requireNonNull(spec);
+        requireNonNull(txn);
+        var subOp = getTxnRecord(txn).logged();
+        var parentOp = getTxnRecord(parent);
+        allRunFor(spec, subOp, parentOp);
+        final var rcd = subOp.getResponseRecord();
+        final var parentRcd = parentOp.getResponseRecord();
+        final var gasUsed = rcd.getContractCreateResult().getGasUsed();
+        return (gasUsed * 71.0)
+                / ONE_HBAR
+                / parentRcd.getReceipt().getExchangeRate().getCurrentRate().getHbarEquiv()
+                * parentRcd.getReceipt().getExchangeRate().getCurrentRate().getCentEquiv()
+                / 100;
+    }
+
+    // -------- Dual-mode validation utils ---------//
 
     /*
      * Dual-mode fee validation that branches on {@code fees.simpleFeesEnabled} at runtime.
@@ -2396,6 +2519,28 @@ public class FeesChargingUtils {
                 return validateInnerTxnChargedUsd(txn, parent, simpleFee, allowedDiff);
             } else {
                 return validateInnerTxnChargedUsd(txn, parent, legacyFee, allowedDiff);
+            }
+        });
+    }
+
+    /**
+     * Dual-mode fee validation for inner atomic batch transactions that branches on {@code fees.simpleFeesEnabled} at runtime.
+     * When simple fees are enabled, validates against {@code expectedSimpleFeesUsd} using the provided function;
+     * otherwise validates against {@code legacyExpectedUsd}.
+     */
+    public static SpecOperation validateInnerTxnFeesWithTxnSize(
+            final String innerTxnId,
+            final String parentTxnId,
+            final double legacyExpectedUsd,
+            final double legacyAllowedPercentDiff,
+            final IntToDoubleFunction expectedSimpleFeesUsd,
+            final double simpleFeesAllowedPercentDiff) {
+        return doWithStartupConfig("fees.simpleFeesEnabled", flag -> {
+            if ("true".equals(flag)) {
+                return validateInnerChargedUsdWithinWithTxnSize(
+                        innerTxnId, parentTxnId, expectedSimpleFeesUsd, simpleFeesAllowedPercentDiff);
+            } else {
+                return validateInnerTxnChargedUsd(innerTxnId, parentTxnId, legacyExpectedUsd, legacyAllowedPercentDiff);
             }
         });
     }

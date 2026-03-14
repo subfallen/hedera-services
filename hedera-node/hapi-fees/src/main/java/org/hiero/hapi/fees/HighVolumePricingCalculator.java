@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.hedera.hapi.node.base.HederaFunctionality;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import org.hiero.hapi.support.fees.PiecewiseLinearCurve;
@@ -54,8 +55,23 @@ public final class HighVolumePricingCalculator {
 
     /** The default multiplier scaled by 1,000 (1,000 = 1x). */
     public static final long DEFAULT_HIGH_VOLUME_MULTIPLIER = 1_000L;
-    /** The set of high-volume functions. */
-    public static final Set<HederaFunctionality> HIGH_VOLUME_FUNCTIONS = Set.of(
+    /** The set of operations eligible for high-volume pricing multipliers. CryptoTransfer is not included */
+    public static final Set<HederaFunctionality> HIGH_VOLUME_PRICING_FUNCTIONS = Set.of(
+            CRYPTO_CREATE,
+            CONSENSUS_CREATE_TOPIC,
+            SCHEDULE_CREATE,
+            CRYPTO_APPROVE_ALLOWANCE,
+            FILE_CREATE,
+            FILE_APPEND,
+            CONTRACT_CREATE,
+            HOOK_STORE,
+            TOKEN_ASSOCIATE_TO_ACCOUNT,
+            TOKEN_AIRDROP,
+            TOKEN_CLAIM_AIRDROP,
+            TOKEN_MINT,
+            TOKEN_CREATE);
+    /** The set of operations eligible for high-volume throttle bucket routing. */
+    public static final Set<HederaFunctionality> HIGH_VOLUME_THROTTLE_FUNCTIONS = Set.of(
             CRYPTO_CREATE,
             CONSENSUS_CREATE_TOPIC,
             SCHEDULE_CREATE,
@@ -129,7 +145,11 @@ public final class HighVolumePricingCalculator {
      */
     public static long interpolatePiecewiseLinear(
             @NonNull final PiecewiseLinearCurve curve, final int utilizationBasisPoints) {
-        final List<PiecewiseLinearPoint> points = curve.points();
+        // Sort ascending so the bracketing-point search below works correctly regardless of the
+        // order in which points are defined in the fee schedule configuration.
+        final List<PiecewiseLinearPoint> points = curve.points().stream()
+                .sorted(Comparator.comparingInt(PiecewiseLinearPoint::utilizationBasisPoints))
+                .toList();
         // If there is only one point, return that point's multiplier
         if (points.size() == 1) {
             return normalizeMultiplier(points.getFirst().multiplier());

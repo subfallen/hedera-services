@@ -16,8 +16,7 @@ import static com.hedera.node.app.workflows.prehandle.PreHandleResult.Status.SO_
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableSortedSet;
 import static java.util.Objects.requireNonNull;
-import static org.hiero.hapi.fees.HighVolumePricingCalculator.HIGH_VOLUME_FUNCTIONS;
-// import static org.hiero.hapi.fees.HighVolumePricingCalculator.HIGH_VOLUME_MULTIPLIER_SCALE;
+import static org.hiero.hapi.fees.HighVolumePricingCalculator.HIGH_VOLUME_PRICING_FUNCTIONS;
 
 import com.hedera.hapi.node.base.AccountID;
 import com.hedera.hapi.node.base.HederaFunctionality;
@@ -312,15 +311,18 @@ public class ChildDispatchFactory {
                 ? dispatchHandleContext.dispatchComputeFees(txnInfo.txBody(), payerId, YES)
                 : dispatchHandleContext.dispatchComputeFees(txnInfo.txBody(), payerId);
 
-        final var congestionMultiplier = feeManager.congestionMultiplierFor(
-                txnInfo.txBody(), txnInfo.functionality(), storeFactory.asReadOnly());
-        if (congestionMultiplier > 1) {
-            builder.congestionMultiplier(congestionMultiplier);
-        }
         // Child transactions can inherit highVolume from a parent synthetic dispatch.
         final var isHighVolume = txnInfo.txBody().highVolume();
-        if (isHighVolume && HIGH_VOLUME_FUNCTIONS.contains(txnInfo.functionality())) {
+        if (isHighVolume && HIGH_VOLUME_PRICING_FUNCTIONS.contains(txnInfo.functionality())) {
+            // High-volume pricing and congestion multipliers are mutually exclusive; only record the
+            // one that was actually applied to the fee so the block stream is not misleading.
             builder.highVolumePricingMultiplier(childFees.highVolumeMultiplier());
+        } else {
+            final var congestionMultiplier = feeManager.congestionMultiplierFor(
+                    txnInfo.txBody(), txnInfo.functionality(), storeFactory.asReadOnly());
+            if (congestionMultiplier > 1) {
+                builder.congestionMultiplier(congestionMultiplier);
+            }
         }
         final var childTokenContext = new TokenContextImpl(config, childStack, consensusNow, writableEntityIdStore);
         return new RecordDispatch(

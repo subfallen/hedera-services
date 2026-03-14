@@ -33,16 +33,6 @@ testing {
     suites.register<JvmTestSuite>("testChaos") {
         targets.configureEach { testTask { dependsOn(":consensus-otter-docker-app:assemble") } }
     }
-
-    suites.register<JvmTestSuite>("testPerformance") {
-        // Runs performance benchmarks against the container environment
-        targets.configureEach {
-            testTask {
-                systemProperty("otter.env", "container")
-                dependsOn(":consensus-otter-docker-app:assemble")
-            }
-        }
-    }
 }
 
 testModuleInfo {
@@ -73,10 +63,6 @@ extensions.getByName<GradleOnlyDirectives>("testChaosModuleInfo").apply {
     runtimeOnly("io.grpc.netty.shaded")
 }
 
-extensions.getByName<GradleOnlyDirectives>("testPerformanceModuleInfo").apply {
-    runtimeOnly("io.grpc.netty.shaded")
-}
-
 // Fix testcontainers module system access to commons libraries
 // testcontainers 2.0.2 is a named module but doesn't declare its module-info dependencies
 // We need to grant it access to the commons modules via JVM arguments
@@ -100,38 +86,10 @@ tasks.compileTestFixturesJava {
     options.compilerArgs.add("-Alog4j.graalvm.artifactId=${project.name}")
 }
 
-// Task to start Grafana and import metrics after performance tests
-tasks.register<Exec>("startGrafana") {
-    group = "visualization"
-    description = "Start Grafana with VictoriaMetrics and import benchmark metrics"
-
-    val metricsPath =
-        providers
-            .gradleProperty("metricsPath")
-            .orElse(
-                "build/container/ConsensusLayerBenchmark/benchmark/node-*/data/stats/metrics.txt"
-            )
-
-    workingDir = projectDir
-    commandLine("bash", "-c", "src/testPerformance/start-grafana.sh ${metricsPath.get()}")
-
-    // Mark as not compatible with configuration cache to avoid serialization issues
-    notCompatibleWithConfigurationCache("Uses external shell script with dynamic file paths")
-}
-
-// Task to stop Grafana and VictoriaMetrics containers
-tasks.register<Exec>("stopGrafana") {
-    group = "visualization"
-    description = "Stop Grafana and VictoriaMetrics containers and remove data"
-
-    workingDir = projectDir
-    commandLine("bash", "-c", "src/testPerformance/start-grafana.sh --shutdown")
-}
-
-// Task to run performance tests and immediately visualize results
-tasks.register("benchmarkAndVisualize") {
-    group = "visualization"
-    description = "Run performance benchmark and start Grafana visualization"
-    dependsOn("testPerformance")
-    finalizedBy("startGrafana")
+// Task to generate saved states for otter tests
+tasks.register<JavaExec>("generateSavedState") {
+    group = "otter"
+    description = "Generate a saved state for use in otter tests"
+    classpath = sourceSets.testFixtures.get().runtimeClasspath
+    mainClass = "org.hiero.otter.fixtures.tools.GenerateStateTool"
 }

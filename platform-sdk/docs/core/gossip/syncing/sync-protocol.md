@@ -221,3 +221,43 @@ Suppose we have an event 3 who has a self parent 2 who has a self parent 1. Once
 created, but not gossiped out, because the creator is under load. Once it starts syncing again, 2 is ancient for the
 other nodes, so they never receive it. They don't need to, because its a stale event. Now we receive 3 and it becomes a
 tip, but 1 is still also a tip, because it has no descendants that we know of. So we end up with more tips then nodes.
+
+### Filtering likely duplicate events
+
+Concurrent synchronizations may result in multiple nodes transmitting the same event, leading to significant event
+duplication. Although receivers filter out redundant events, this process consumes unnecessary bandwidth and processing
+resources.
+
+To mitigate this, a delay is introduced for sending certain events until they reach a designated age. In its most basic
+configuration, self-events and their ancestors are transmitted immediately. In contrast, "other" events — those created
+by different nodes, which are not ancestors of self events — are delayed for several seconds. This delay allows the
+original creators to synchronize these events first, substantially reducing duplication. While not exhaustive — as
+self-events eventually incorporate ancestors from various creators — this method remains more efficient than no
+filtering and involves minimal overhead.
+
+The introduction of primitive broadcast modifies this dynamic. Broadcast preemptively transmits all self-events,
+significantly reducing the necessity of synchronizing them via the sync protocol. Synchronization remains essential
+primarily after network disruptions. With broadcast enabled, self-events can be delayed significantly during
+sync, as they will come over broadcast. However, node may not yet have received the ancestors from other creators,
+as there is no guarantee they will be broadcast in time.
+Missing ancestors would cause self-events to remain in the orphan buffer.
+
+To address this, three levels of delays are implemented when broadcast is enabled. These levels categorize events as:
+self-events, ancestors of self-events, and "other" events (non-ancestors of self-events). Ancestors of self-events are
+assigned the shortest delay, while self-events and "other" events have longer delays. Timings are configurable based on
+network conditions; a typical WAN configuration might include:
+
+- self-events: 1 second delay
+- ancestors of self-events: 250ms delay
+- other events: 3 seconds delay
+
+For such settings, if network latency (pings) remains below 250ms, the broadcast protocol can effectively replace the
+sync protocol. This configuration maintains a low duplication rate while ensuring required ancestors are sent
+aggressively enough to accommodate slower nodes. Furthermore, it serves as a robust fallback for significant network
+disconnections. Broadcast remains disabled until the initial synchronization is complete, ensuring that newly connected
+nodes receive all necessary data without delay to expedite recovery.
+
+In diagram below, you can see example categorization of events. In such a case, magenta events would be sent most
+aggressively, while green events would be sent less aggressively, and red events would be sent least aggressively.
+
+<img src="ancestor-filtering.drawio.png" />
