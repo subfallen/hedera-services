@@ -20,7 +20,7 @@ public class Ed25519Factory {
         return Key.newBuilder().setEd25519(ByteString.copyFrom(pubKey)).build();
     }
 
-    public static void main(String... args) {
+    static void main(String... args) {
         System.out.println(randomMnemonic());
     }
 }

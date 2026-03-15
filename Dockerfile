@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ COPY hedera-node/data/config/api-permission.properties /app/data/config/api-perm
 COPY hedera-node/configuration/dev/genesis-network.json /app/data/config/genesis-network.json
 
 # Copy application JAR
-COPY hedera-node/hedera-app/build/libs/app-0.72.0-SNAPSHOT.jar /app/app.jar
+COPY hedera-node/hedera-app/build/libs/app-0.73.0-SNAPSHOT.jar /app/app.jar
 
 # Run with lib/* on classpath
 ENTRYPOINT ["java", "-cp", "/app/app.jar:/app/lib/*", "com.hedera.node.app.ServicesMain", "-local", "0"]

@@ -2,7 +2,7 @@
 *
 
 # Allow only what we need
-!hedera-node/hedera-app/build/libs/app-0.72.0-SNAPSHOT.jar
+!hedera-node/hedera-app/build/libs/app-0.73.0-SNAPSHOT.jar
 !hedera-node/data/lib/
 !SimpleERC20.bin
 !MockSupraOraclePull.bin
