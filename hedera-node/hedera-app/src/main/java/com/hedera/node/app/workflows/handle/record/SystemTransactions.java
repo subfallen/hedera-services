@@ -113,7 +113,6 @@ import com.swirlds.state.spi.WritableSingletonStateBase;
 import com.swirlds.state.spi.WritableStates;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -1293,7 +1292,8 @@ public class SystemTransactions {
         final byte[] initcode;
         try {
             final var slash = FEE_COLLECTOR_INITCODE_LOC.lastIndexOf("/");
-            final var loc = FEE_COLLECTOR_INITCODE_LOC.substring(0, slash) + File.separator + MOCK_SUPRA_PULL_ORACLE_CONTRACT + ".bin";
+            final var loc = FEE_COLLECTOR_INITCODE_LOC.substring(0, slash) + File.separator
+                    + MOCK_SUPRA_PULL_ORACLE_CONTRACT + ".bin";
             initcode = Files.readAllBytes(Paths.get(loc));
             final var op = FileCreateTransactionBody.newBuilder()
                     .contents(Bytes.wrap(initcode))

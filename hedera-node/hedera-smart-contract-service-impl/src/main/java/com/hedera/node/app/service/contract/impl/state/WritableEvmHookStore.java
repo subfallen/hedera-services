@@ -432,8 +432,11 @@ public class WritableEvmHookStore extends ReadableEvmHookStoreImpl {
                     yield insertSlot(hookId, firstKey, update.key(), update.newValueOrThrow());
                 }
                 case UPDATE -> {
-                    final var slotValue =
-                            new SlotValue(update.newValueOrThrow(), slot.effectivePrevKey(), slot.effectiveNextKey());
+                    final var currentSlotValue = requireNonNull(
+                            storage.get(slot.key()),
+                            () -> "Missing current key " + slot.key().key());
+                    final var slotValue = new SlotValue(
+                            update.newValueOrThrow(), currentSlotValue.previousKey(), currentSlotValue.nextKey());
                     storage.put(slot.key(), slotValue);
                     yield firstKey;
                 }
