@@ -5,6 +5,7 @@ import static com.hedera.hapi.node.base.ResponseCodeEnum.SUCCESS;
 import static com.hedera.hapi.node.base.ResponseCodeEnum.SUCCESS_BUT_MISSING_EXPECTED_OPERATION;
 import static com.hedera.hapi.node.base.TokenType.FUNGIBLE_COMMON;
 import static com.hedera.hapi.util.HapiUtils.asTimestamp;
+import static com.hedera.node.app.hapi.utils.CommonUtils.asEvmAddress;
 import static com.hedera.node.app.hapi.utils.keys.KeyUtils.IMMUTABILITY_SENTINEL_KEY;
 import static com.hedera.node.app.service.addressbook.impl.schemas.V053AddressBookSchema.parseEd25519NodeAdminKeysFrom;
 import static com.hedera.node.app.service.entityid.impl.schemas.V0490EntityIdSchema.ENTITY_ID_STATE_ID;
@@ -34,6 +35,7 @@ import com.hedera.hapi.node.addressbook.NodeDeleteTransactionBody;
 import com.hedera.hapi.node.addressbook.NodeUpdateTransactionBody;
 import com.hedera.hapi.node.base.*;
 import com.hedera.hapi.node.consensus.ConsensusCreateTopicTransactionBody;
+import com.hedera.hapi.node.contract.ContractCallTransactionBody;
 import com.hedera.hapi.node.contract.ContractCreateTransactionBody;
 import com.hedera.hapi.node.file.FileCreateTransactionBody;
 import com.hedera.hapi.node.state.blockrecords.BlockInfo;
@@ -446,6 +448,13 @@ public class SystemTransactions {
         setupPlexFeeCollector(systemContext);
         setupSimpleErc20Initcode(systemContext);
         setupErc20Tokens(systemContext);
+        setupSaucerSwapWhbar(systemContext);
+        setupSaucerSwapV2Factory(systemContext);
+        configureSaucerSwapV2Factory(systemContext);
+        setupSaucerSwapV2Router(systemContext);
+        setupSaucerSwapV2Quoter(systemContext);
+        setupSaucerSwapV2Bootstrapper(systemContext);
+        seedSaucerSwapV2Pool(systemContext);
         setupMockPullOracleInitcode(systemContext);
         setupMockPullOracle(systemContext, MOCK_SUPRA_PULL_ORACLE);
     }
@@ -1149,6 +1158,12 @@ public class SystemTransactions {
     private static final long MOCK_SUPRA_PULL_INITCODE_ID = 8877L;
     private static final long MOCK_SUPRA_PULL_ORACLE = 888777L;
     private static final long FEE_COLLECTOR_ID = 1234567L;
+    private static final long SAUCERSWAP_WHBAR_CONTRACT_ID = 777776L;
+    private static final long SAUCERSWAP_WHBAR_TOKEN_ID = 777777L;
+    private static final long SAUCERSWAP_V2_FACTORY_ID = 777778L;
+    private static final long SAUCERSWAP_V2_ROUTER_ID = 777779L;
+    private static final long SAUCERSWAP_V2_QUOTER_ID = 777780L;
+    private static final long SAUCERSWAP_V2_BOOTSTRAPPER_ID = 777781L;
     private static final Key MASTER_KEY =
             Key.newBuilder().ed25519(Bytes.fromHex(A4589187_PUBLIC_KEY)).build();
     private static final Map<Long, Key> WELL_KNOWN_KEYS = Map.of(
@@ -1240,8 +1255,41 @@ public class SystemTransactions {
 
     private static final String FEE_COLLECTOR_INITCODE_LOC =
             System.getenv().getOrDefault("FEE_COLLECTOR_INITCODE_LOC", "/app/LambdaplexFeeCollector.bin");
+    private static final String SAUCERSWAP_WHBAR_INITCODE_LOC =
+            System.getenv().getOrDefault("SAUCERSWAP_WHBAR_INITCODE_LOC", "/app/SaucerSwapWHBAR.bin");
+    private static final String SAUCERSWAP_V2_FACTORY_INITCODE_LOC =
+            System.getenv().getOrDefault("SAUCERSWAP_V2_FACTORY_INITCODE_LOC", "/app/SaucerSwapV2Factory.bin");
+    private static final String SAUCERSWAP_V2_ROUTER_INITCODE_LOC =
+            System.getenv().getOrDefault("SAUCERSWAP_V2_ROUTER_INITCODE_LOC", "/app/SaucerSwapV2SwapRouter.bin");
+    private static final String SAUCERSWAP_V2_QUOTER_INITCODE_LOC =
+            System.getenv().getOrDefault("SAUCERSWAP_V2_QUOTER_INITCODE_LOC", "/app/SaucerSwapV2Quoter.bin");
+    private static final String SAUCERSWAP_V2_BOOTSTRAPPER_INITCODE_LOC =
+            System.getenv().getOrDefault(
+                    "SAUCERSWAP_V2_BOOTSTRAPPER_INITCODE_LOC", "/app/SaucerSwapV2Bootstrapper.bin");
     private static final String ERC20_CONTRACT = "SimpleERC20";
     private static final String MOCK_SUPRA_PULL_ORACLE_CONTRACT = "MockSupraOraclePull";
+    private static final long SAUCERSWAP_HBAR_BOOTSTRAP_AMOUNT = 100_000L * 100_000_000L;
+    private static final long SAUCERSWAP_USDC_BOOTSTRAP_AMOUNT = 10_000L * 1_000_000L;
+    private static final String SAUCERSWAP_POOL_BASE_SYMBOL = "HBAR";
+    private static final String SAUCERSWAP_POOL_QUOTE_SYMBOL = "USDC";
+    private static final int SAUCERSWAP_V2_FEE = 1500;
+    private static final int SAUCERSWAP_V2_TICK_SPACING = 60;
+    private static final int SAUCERSWAP_V2_TICK_LOWER = -887220;
+    private static final int SAUCERSWAP_V2_TICK_UPPER = 887220;
+    private static final BigInteger SAUCERSWAP_V2_INITIAL_SQRT_PRICE_X96 =
+            new BigInteger("2505414483750479311864138015696");
+    private static final String SAUCERSWAP_ROUTER_OR_QUOTER_CONSTRUCTOR_ABI =
+            "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_factory\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_WHBAR\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"}";
+    private static final String SAUCERSWAP_BOOTSTRAPPER_CONSTRUCTOR_ABI =
+            "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_factory\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_WHBAR\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_tokenA\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_tokenB\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"}";
+    private static final String SAUCERSWAP_V2_ENABLE_FEE_AMOUNT_ABI =
+            "{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"fee\",\"type\":\"uint24\"},{\"internalType\":\"int24\",\"name\":\"tickSpacing\",\"type\":\"int24\"}],\"name\":\"enableFeeAmount\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
+    private static final String SAUCERSWAP_V2_BOOTSTRAPPER_WRAP_HBAR_ABI =
+            "{\"inputs\":[],\"name\":\"wrapHbar\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"}";
+    private static final String SAUCERSWAP_V2_BOOTSTRAPPER_CREATE_POOL_ABI =
+            "{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"fee\",\"type\":\"uint24\"},{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"}],\"name\":\"createAndInitializePoolIfNecessary\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"pool\",\"type\":\"address\"}],\"stateMutability\":\"payable\",\"type\":\"function\"}";
+    private static final String SAUCERSWAP_V2_BOOTSTRAPPER_MINT_POSITION_ABI =
+            "{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"fee\",\"type\":\"uint24\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint256\",\"name\":\"amount0Desired\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1Desired\",\"type\":\"uint256\"}],\"name\":\"mintPosition\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"stateMutability\":\"payable\",\"type\":\"function\"}";
 
     private void setupPlexFeeCollector(SystemContext systemContext) {
         final byte[] initcode;
@@ -1265,6 +1313,200 @@ public class SystemTransactions {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private void setupSaucerSwapWhbar(SystemContext systemContext) {
+        dispatchContractCreation(
+                systemContext,
+                MASTER_ID,
+                SAUCERSWAP_WHBAR_CONTRACT_ID,
+                "Synthetic SaucerSwap WHBAR creation",
+                unhexedInitcodeAt(SAUCERSWAP_WHBAR_INITCODE_LOC),
+                4_000_000L);
+    }
+
+    private void setupSaucerSwapV2Factory(SystemContext systemContext) {
+        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        dispatchContractCreation(
+                systemContext,
+                systemAdminNum,
+                SAUCERSWAP_V2_FACTORY_ID,
+                "Synthetic SaucerSwap V2 factory creation",
+                unhexedInitcodeAt(SAUCERSWAP_V2_FACTORY_INITCODE_LOC),
+                10_000_000L);
+    }
+
+    private void configureSaucerSwapV2Factory(SystemContext systemContext) {
+        final var enableFeeAmount =
+                com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_ENABLE_FEE_AMOUNT_ABI);
+        final var encodedCall = enableFeeAmount
+                .encodeCallWithArgs(BigInteger.valueOf(SAUCERSWAP_V2_FEE), SAUCERSWAP_V2_TICK_SPACING)
+                .array();
+        final var op = ContractCallTransactionBody.newBuilder()
+                .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_V2_FACTORY_ID))
+                .functionParameters(Bytes.wrap(encodedCall))
+                .gas(2_000_000L)
+                .build();
+        systemContext.dispatchAdmin(
+                b -> b.memo("Synthetic SaucerSwap V2 factory configuration")
+                        .contractCall(op));
+    }
+
+    private void setupSaucerSwapV2Router(SystemContext systemContext) {
+        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        final var initcodeWithArgs = initcodeWithConstructorArgs(
+                unhexedInitcodeAt(SAUCERSWAP_V2_ROUTER_INITCODE_LOC),
+                SAUCERSWAP_ROUTER_OR_QUOTER_CONSTRUCTOR_ABI,
+                longZeroAddressOf(SAUCERSWAP_V2_FACTORY_ID),
+                longZeroAddressOf(SAUCERSWAP_WHBAR_CONTRACT_ID));
+        dispatchContractCreation(
+                systemContext,
+                systemAdminNum,
+                SAUCERSWAP_V2_ROUTER_ID,
+                "Synthetic SaucerSwap V2 router creation",
+                initcodeWithArgs,
+                12_000_000L);
+    }
+
+    private void setupSaucerSwapV2Quoter(SystemContext systemContext) {
+        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        final var initcodeWithArgs = initcodeWithConstructorArgs(
+                unhexedInitcodeAt(SAUCERSWAP_V2_QUOTER_INITCODE_LOC),
+                SAUCERSWAP_ROUTER_OR_QUOTER_CONSTRUCTOR_ABI,
+                longZeroAddressOf(SAUCERSWAP_V2_FACTORY_ID),
+                longZeroAddressOf(SAUCERSWAP_WHBAR_CONTRACT_ID));
+        dispatchContractCreation(
+                systemContext,
+                systemAdminNum,
+                SAUCERSWAP_V2_QUOTER_ID,
+                "Synthetic SaucerSwap V2 quoter creation",
+                initcodeWithArgs,
+                8_000_000L);
+    }
+
+    private void setupSaucerSwapV2Bootstrapper(SystemContext systemContext) {
+        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        final var initcodeWithArgs = initcodeWithConstructorArgs(
+                unhexedInitcodeAt(SAUCERSWAP_V2_BOOTSTRAPPER_INITCODE_LOC),
+                SAUCERSWAP_BOOTSTRAPPER_CONSTRUCTOR_ABI,
+                longZeroAddressOf(SAUCERSWAP_V2_FACTORY_ID),
+                longZeroAddressOf(SAUCERSWAP_WHBAR_CONTRACT_ID),
+                longZeroAddressOf(tokenNumForSymbol(SAUCERSWAP_POOL_QUOTE_SYMBOL)),
+                longZeroAddressOf(SAUCERSWAP_WHBAR_TOKEN_ID));
+        dispatchContractCreation(
+                systemContext,
+                systemAdminNum,
+                SAUCERSWAP_V2_BOOTSTRAPPER_ID,
+                "Synthetic SaucerSwap V2 bootstrapper creation",
+                initcodeWithArgs,
+                8_000_000L);
+    }
+
+    private void seedSaucerSwapV2Pool(SystemContext systemContext) {
+        final var createPool =
+                com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_BOOTSTRAPPER_CREATE_POOL_ABI);
+        final var createPoolCall = createPool
+                .encodeCallWithArgs(BigInteger.valueOf(SAUCERSWAP_V2_FEE), SAUCERSWAP_V2_INITIAL_SQRT_PRICE_X96)
+                .array();
+        final var createPoolOp = ContractCallTransactionBody.newBuilder()
+                .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_V2_BOOTSTRAPPER_ID))
+                .functionParameters(Bytes.wrap(createPoolCall))
+                .gas(8_000_000L)
+                .build();
+        systemContext.dispatchAdmin(
+                b -> b.memo("Synthetic SaucerSwap V2 pool creation for HBAR-USDC")
+                        .contractCall(createPoolOp));
+
+        final var wrapHbar =
+                com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_BOOTSTRAPPER_WRAP_HBAR_ABI);
+        final var wrapHbarOp = ContractCallTransactionBody.newBuilder()
+                .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_V2_BOOTSTRAPPER_ID))
+                .functionParameters(Bytes.wrap(wrapHbar.encodeCallWithArgs().array()))
+                .amount(SAUCERSWAP_HBAR_BOOTSTRAP_AMOUNT)
+                .gas(4_000_000L)
+                .build();
+        systemContext.dispatchAdmin(
+                b -> b.memo("Synthetic SaucerSwap V2 WHBAR bootstrap funding")
+                        .contractCall(wrapHbarOp));
+
+        final var usdcTokenId = TokenID.newBuilder().tokenNum(tokenNumForSymbol(SAUCERSWAP_POOL_QUOTE_SYMBOL)).build();
+        final var usdcTransfer = CryptoTransferTransactionBody.newBuilder()
+                .tokenTransfers(TokenTransferList.newBuilder()
+                        .token(usdcTokenId)
+                        .transfers(
+                                AccountAmount.newBuilder()
+                                        .accountID(AccountID.newBuilder().accountNum(MASTER_ID))
+                                        .amount(-SAUCERSWAP_USDC_BOOTSTRAP_AMOUNT)
+                                        .build(),
+                                AccountAmount.newBuilder()
+                                        .accountID(AccountID.newBuilder().accountNum(SAUCERSWAP_V2_BOOTSTRAPPER_ID))
+                                        .amount(SAUCERSWAP_USDC_BOOTSTRAP_AMOUNT)
+                                        .build())
+                        .build())
+                .build();
+        systemContext.dispatchAdmin(
+                b -> b.memo("Synthetic SaucerSwap V2 USDC bootstrap funding")
+                        .cryptoTransfer(usdcTransfer));
+
+        final var mintPosition =
+                com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_BOOTSTRAPPER_MINT_POSITION_ABI);
+        final var mintPositionCall = mintPosition
+                .encodeCallWithArgs(
+                        BigInteger.valueOf(SAUCERSWAP_V2_FEE),
+                        SAUCERSWAP_V2_TICK_LOWER,
+                        SAUCERSWAP_V2_TICK_UPPER,
+                        BigInteger.valueOf(SAUCERSWAP_USDC_BOOTSTRAP_AMOUNT),
+                        BigInteger.valueOf(SAUCERSWAP_HBAR_BOOTSTRAP_AMOUNT))
+                .array();
+        final var mintPositionOp = ContractCallTransactionBody.newBuilder()
+                .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_V2_BOOTSTRAPPER_ID))
+                .functionParameters(Bytes.wrap(mintPositionCall))
+                .gas(10_000_000L)
+                .build();
+        systemContext.dispatchAdmin(
+                b -> b.memo("Synthetic SaucerSwap V2 initial liquidity mint")
+                        .contractCall(mintPositionOp));
+    }
+
+    private byte[] unhexedInitcodeAt(@NonNull final String location) {
+        try {
+            final var initcode = Files.readAllBytes(Paths.get(location));
+            final var encoder = new HexMessageEncoder();
+            return encoder.decode(new String(initcode));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private byte[] initcodeWithConstructorArgs(
+            @NonNull final byte[] initcode, @NonNull final String constructorAbi, @NonNull final Object... args) {
+        final var constructor = com.esaulpaugh.headlong.abi.Function.fromJson(constructorAbi);
+        final var encodedArgs = constructor.encodeCallWithArgs(args).array();
+        final var initcodeWithArgs = Arrays.copyOf(initcode, initcode.length + encodedArgs.length - 4);
+        System.arraycopy(encodedArgs, 4, initcodeWithArgs, initcode.length, encodedArgs.length - 4);
+        return initcodeWithArgs;
+    }
+
+    private void dispatchContractCreation(
+            @NonNull final SystemContext systemContext,
+            final long payerNum,
+            final long contractNum,
+            @NonNull final String memo,
+            @NonNull final byte[] initcode,
+            final long gas) {
+        final var op = ContractCreateTransactionBody.newBuilder()
+                .initcode(Bytes.wrap(initcode))
+                .autoRenewPeriod(new Duration(7776000L))
+                .gas(gas)
+                .build();
+        systemContext.dispatchCreation(
+                b -> b.memo(memo)
+                        .transactionID(TransactionID.newBuilder()
+                                .accountID(AccountID.newBuilder().accountNum(payerNum))
+                                .build())
+                        .contractCreateInstance(op)
+                        .build(),
+                contractNum);
     }
 
     private void setupSimpleErc20Initcode(SystemContext systemContext) {
@@ -1388,6 +1630,29 @@ public class SystemTransactions {
             final var entry = meta.entrySet().iterator().next();
             setupErc20(systemContext, entry.getKey(), s, entry.getValue());
         });
+    }
+
+    private long tokenNumForSymbol(@NonNull final String symbol) {
+        final var normalized = symbol.toUpperCase(Locale.ROOT);
+        if (SAUCERSWAP_POOL_BASE_SYMBOL.equals(normalized) || "WHBAR".equals(normalized)) {
+            return SAUCERSWAP_WHBAR_TOKEN_ID;
+        }
+        if (PLEX_SYMBOL.equals(normalized)) {
+            return PLEX_NUMBER;
+        }
+        var tokenNum = FIRST_TOKEN_NUM;
+        for (final var seededSymbol : DEV_TOKEN_METADATA.keySet()) {
+            if (seededSymbol.equals(normalized)) {
+                return tokenNum;
+            }
+            tokenNum++;
+        }
+        throw new IllegalArgumentException("Unknown seeded token symbol: " + symbol);
+    }
+
+    private com.esaulpaugh.headlong.abi.Address longZeroAddressOf(final long entityNum) {
+        return com.esaulpaugh.headlong.abi.Address.wrap(
+                com.esaulpaugh.headlong.abi.Address.toChecksumAddress(new BigInteger(1, asEvmAddress(entityNum))));
     }
 
     private void setupPlexTopics(SystemContext systemContext) {

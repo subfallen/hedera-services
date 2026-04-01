@@ -7,6 +7,11 @@
 !SimpleERC20.bin
 !MockSupraOraclePull.bin
 !LambdaplexFeeCollector.bin
+!SaucerSwapWHBAR.bin
+!SaucerSwapV2Factory.bin
+!SaucerSwapV2SwapRouter.bin
+!SaucerSwapV2Quoter.bin
+!SaucerSwapV2Bootstrapper.bin
 !hedera-node/log4j2.xml
 !hedera-node/config.txt
 !hedera-node/data/keys/generate.sh

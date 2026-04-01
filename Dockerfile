@@ -10,6 +10,11 @@ COPY hedera-node/data/lib/ /app/lib/
 COPY SimpleERC20.bin /app/SimpleERC20.bin
 COPY MockSupraOraclePull.bin /app/MockSupraOraclePull.bin
 COPY LambdaplexFeeCollector.bin /app/LambdaplexFeeCollector.bin
+COPY SaucerSwapWHBAR.bin /app/SaucerSwapWHBAR.bin
+COPY SaucerSwapV2Factory.bin /app/SaucerSwapV2Factory.bin
+COPY SaucerSwapV2SwapRouter.bin /app/SaucerSwapV2SwapRouter.bin
+COPY SaucerSwapV2Quoter.bin /app/SaucerSwapV2Quoter.bin
+COPY SaucerSwapV2Bootstrapper.bin /app/SaucerSwapV2Bootstrapper.bin
 
 # Copy config
 COPY hedera-node/log4j2.xml /app/log4j2.xml
