@@ -37,6 +37,7 @@ import com.hedera.hapi.node.base.*;
 import com.hedera.hapi.node.consensus.ConsensusCreateTopicTransactionBody;
 import com.hedera.hapi.node.contract.ContractCallTransactionBody;
 import com.hedera.hapi.node.contract.ContractCreateTransactionBody;
+import com.hedera.hapi.node.contract.ContractFunctionResult;
 import com.hedera.hapi.node.file.FileCreateTransactionBody;
 import com.hedera.hapi.node.state.blockrecords.BlockInfo;
 import com.hedera.hapi.node.state.common.EntityNumber;
@@ -53,6 +54,7 @@ import com.hedera.hapi.node.tss.LedgerIdNodeContribution;
 import com.hedera.hapi.node.tss.LedgerIdPublicationTransactionBody;
 import com.hedera.hapi.platform.state.PlatformState;
 import com.hedera.node.app.blocks.BlockStreamManager;
+import com.hedera.node.app.blocks.impl.PairedStreamBuilder;
 import com.hedera.node.app.fees.ExchangeRateManager;
 import com.hedera.node.app.records.BlockRecordManager;
 import com.hedera.node.app.records.BlockRecordService;
@@ -449,6 +451,8 @@ public class SystemTransactions {
         setupSimpleErc20Initcode(systemContext);
         setupErc20Tokens(systemContext);
         setupSaucerSwapWhbar(systemContext);
+        setupSaucerSwapWhbarToken(systemContext);
+        configureSaucerSwapWhbar(systemContext);
         setupSaucerSwapV2Factory(systemContext);
         configureSaucerSwapV2Factory(systemContext);
         setupSaucerSwapV2Router(systemContext);
@@ -802,6 +806,11 @@ public class SystemTransactions {
         void doUpdate(@NonNull SystemContext systemContext, @NonNull T update);
     }
 
+    private interface SyntheticSystemContext extends SystemContext {
+        @NonNull
+        HandleOutput dispatchAdminWithOutput(@NonNull Consumer<TransactionBody.Builder> spec);
+    }
+
     /**
      * Process object encapsulating the automatic update of a system entity. Attempts to parse a
      * representation of an update from a given file and then apply it within a system context
@@ -909,7 +918,7 @@ public class SystemTransactions {
         final var validDuration =
                 new Duration(config.getConfigData(HederaConfig.class).transactionMaxValidDuration());
 
-        return new SystemContext() {
+        return new SyntheticSystemContext() {
             @Override
             public boolean hasDispatchesRemaining() {
                 return remainingDispatches.get() > 0;
@@ -917,8 +926,14 @@ public class SystemTransactions {
 
             @Override
             public void dispatchAdmin(@NonNull final Consumer<TransactionBody.Builder> spec) {
+                dispatchAdminWithOutput(spec);
+            }
+
+            @Override
+            public @NonNull HandleOutput dispatchAdminWithOutput(@NonNull final Consumer<TransactionBody.Builder> spec) {
                 requireNonNull(spec);
                 final var builder = TransactionBody.newBuilder()
+                        .nodeAccountID(creatorInfo.accountId())
                         .transactionValidDuration(validDuration)
                         .transactionID(TransactionID.newBuilder()
                                 .accountID(systemAdminId)
@@ -933,14 +948,35 @@ public class SystemTransactions {
                         .map(TransactionReceipt::status)
                         .toList();
                 if (!SUCCESSES.containsAll(statuses)) {
+                    output.preferringBlockRecordSource().forEachTxnRecord(record -> {
+                        try {
+                            final var result = record.contractCallResultOrThrow();
+                            log.error(
+                                    "Failed system contract call '{}' gasUsed={} error='{}' result=0x{}",
+                                    body.memo(),
+                                    result.gasUsed(),
+                                    result.errorMessage(),
+                                    result.contractCallResult().toHex());
+                        } catch (Exception ignore) {
+                        }
+                    });
                     log.warn("Failed to dispatch system transaction {} - {}", body, statuses);
+                } else if (body.memo().startsWith("Synthetic SaucerSwap V2 pool creation")) {
+                    output.preferringBlockRecordSource().forEachTxnRecord(record -> {
+                        try {
+                            log.info("Successful system contract call '{}' -> {}", body.memo(), record.contractCallResultOrThrow());
+                        } catch (Exception ignore) {
+                        }
+                    });
                 }
+                return output;
             }
 
             @Override
             public void dispatchCreation(@NonNull final Consumer<TransactionBody.Builder> spec, final long entityNum) {
                 requireNonNull(spec);
                 final var builder = TransactionBody.newBuilder()
+                        .nodeAccountID(creatorInfo.accountId())
                         .transactionValidDuration(validDuration)
                         .transactionID(TransactionID.newBuilder()
                                 .accountID(systemAdminId)
@@ -1059,6 +1095,7 @@ public class SystemTransactions {
             final boolean isSuccess =
                     SUCCESSES.contains(dispatch.streamBuilder().status());
             if (!isSuccess) {
+                logFailedContractDispatch(body, dispatch, nextEntityNum);
                 log.error(
                         "Failed to dispatch system transaction {}{} - {}",
                         body,
@@ -1085,6 +1122,61 @@ public class SystemTransactions {
             log.error("{} - exception thrown while handling system transaction", ALERT_MESSAGE, e);
             return failInvalidStreamItems(parentTxn, exchangeRateManager.exchangeRates(), streamMode, recordCache);
         }
+    }
+
+    private void logFailedContractDispatch(
+            @NonNull final TransactionBody body, @NonNull final Dispatch dispatch, final long nextEntityNum) {
+        if (!body.hasContractCreateInstance() && !body.hasContractCall()) {
+            return;
+        }
+
+        final var result = contractResultOf(dispatch);
+        if (body.hasContractCreateInstance()) {
+            final var op = body.contractCreateInstanceOrThrow();
+            log.error(
+                    "Failed system contract creation '{}' target={} status={} gas={} initcodeSource={} initcodeBytes={} constructorBytes={} gasUsed={} error='{}' createdContractIds={} result=0x{}",
+                    body.memo(),
+                    syntheticEntityId(nextEntityNum),
+                    dispatch.streamBuilder().status(),
+                    op.gas(),
+                    op.hasFileID() ? op.fileIDOrThrow() : "<inline>",
+                    op.hasFileID() ? 0 : op.initcode().length(),
+                    op.constructorParameters().length(),
+                    result == null ? "<none>" : result.gasUsed(),
+                    result == null ? "<none>" : result.errorMessage(),
+                    result == null ? "<none>" : result.createdContractIDs(),
+                    result == null ? "<none>" : result.contractCallResult().toHex());
+            return;
+        }
+
+        final var op = body.contractCallOrThrow();
+        log.error(
+                "Failed system contract call '{}' target={} status={} gas={} amount={} inputBytes={} gasUsed={} error='{}' createdContractIds={} result=0x{}",
+                body.memo(),
+                op.contractIDOrThrow(),
+                dispatch.streamBuilder().status(),
+                op.gas(),
+                op.amount(),
+                op.functionParameters().length(),
+                result == null ? "<none>" : result.gasUsed(),
+                result == null ? "<none>" : result.errorMessage(),
+                result == null ? "<none>" : result.createdContractIDs(),
+                result == null ? "<none>" : result.contractCallResult().toHex());
+    }
+
+    private @Nullable ContractFunctionResult contractResultOf(@NonNull final Dispatch dispatch) {
+        return switch (dispatch.streamBuilder()) {
+            case RecordStreamBuilder recordBuilder ->
+                    recordBuilder.hasContractResult() ? recordBuilder.contractFunctionResult() : null;
+            case PairedStreamBuilder pairedBuilder -> pairedBuilder.recordStreamBuilder().hasContractResult()
+                    ? pairedBuilder.recordStreamBuilder().contractFunctionResult()
+                    : null;
+            default -> null;
+        };
+    }
+
+    private @NonNull String syntheticEntityId(final long entityNum) {
+        return entityNum == 0 ? "<unassigned>" : "0.0." + entityNum;
     }
 
     private static Bytes parseFeeSchedules(@NonNull final InputStream in) {
@@ -1164,6 +1256,7 @@ public class SystemTransactions {
     private static final long SAUCERSWAP_V2_ROUTER_ID = 777779L;
     private static final long SAUCERSWAP_V2_QUOTER_ID = 777780L;
     private static final long SAUCERSWAP_V2_BOOTSTRAPPER_ID = 777781L;
+    private static final long SAUCERSWAP_V2_POOL_ID = 777782L;
     private static final Key MASTER_KEY =
             Key.newBuilder().ed25519(Bytes.fromHex(A4589187_PUBLIC_KEY)).build();
     private static final Map<Long, Key> WELL_KNOWN_KEYS = Map.of(
@@ -1268,35 +1361,44 @@ public class SystemTransactions {
                     "SAUCERSWAP_V2_BOOTSTRAPPER_INITCODE_LOC", "/app/SaucerSwapV2Bootstrapper.bin");
     private static final String ERC20_CONTRACT = "SimpleERC20";
     private static final String MOCK_SUPRA_PULL_ORACLE_CONTRACT = "MockSupraOraclePull";
-    private static final long SAUCERSWAP_HBAR_BOOTSTRAP_AMOUNT = 100_000L * 100_000_000L;
-    private static final long SAUCERSWAP_USDC_BOOTSTRAP_AMOUNT = 10_000L * 1_000_000L;
+    private static final long SAUCERSWAP_HBAR_BOOTSTRAP_AMOUNT = 9_999_999_999_999L;
+    private static final long SAUCERSWAP_USDC_BOOTSTRAP_AMOUNT = 9_333_214_185L;
+    private static final long SAUCERSWAP_V2_BOOTSTRAP_LIQUIDITY = 10_343_801_999_502L;
     private static final String SAUCERSWAP_POOL_BASE_SYMBOL = "HBAR";
     private static final String SAUCERSWAP_POOL_QUOTE_SYMBOL = "USDC";
     private static final int SAUCERSWAP_V2_FEE = 1500;
     private static final int SAUCERSWAP_V2_TICK_SPACING = 60;
-    private static final int SAUCERSWAP_V2_TICK_LOWER = -887220;
-    private static final int SAUCERSWAP_V2_TICK_UPPER = 887220;
+    private static final int SAUCERSWAP_V2_TICK_LOWER = 68460;
+    private static final int SAUCERSWAP_V2_TICK_UPPER = 69660;
     private static final BigInteger SAUCERSWAP_V2_INITIAL_SQRT_PRICE_X96 =
             new BigInteger("2505414483750479311864138015696");
     private static final String SAUCERSWAP_ROUTER_OR_QUOTER_CONSTRUCTOR_ABI =
             "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_factory\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_WHBAR\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"}";
     private static final String SAUCERSWAP_BOOTSTRAPPER_CONSTRUCTOR_ABI =
             "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_factory\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_WHBAR\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_tokenA\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_tokenB\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"}";
+    private static final String SAUCERSWAP_WHBAR_INITIALIZE_ABI =
+            "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
     private static final String SAUCERSWAP_V2_ENABLE_FEE_AMOUNT_ABI =
             "{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"fee\",\"type\":\"uint24\"},{\"internalType\":\"int24\",\"name\":\"tickSpacing\",\"type\":\"int24\"}],\"name\":\"enableFeeAmount\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
+    private static final String SAUCERSWAP_V2_FACTORY_CREATE_POOL_ABI =
+            "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"tokenA\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenB\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"fee\",\"type\":\"uint24\"}],\"name\":\"createPool\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"pool\",\"type\":\"address\"}],\"stateMutability\":\"payable\",\"type\":\"function\"}";
     private static final String SAUCERSWAP_V2_BOOTSTRAPPER_WRAP_HBAR_ABI =
             "{\"inputs\":[],\"name\":\"wrapHbar\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"}";
     private static final String SAUCERSWAP_V2_BOOTSTRAPPER_CREATE_POOL_ABI =
             "{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"fee\",\"type\":\"uint24\"},{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"}],\"name\":\"createAndInitializePoolIfNecessary\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"pool\",\"type\":\"address\"}],\"stateMutability\":\"payable\",\"type\":\"function\"}";
-    private static final String SAUCERSWAP_V2_BOOTSTRAPPER_MINT_POSITION_ABI =
-            "{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"fee\",\"type\":\"uint24\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint256\",\"name\":\"amount0Desired\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1Desired\",\"type\":\"uint256\"}],\"name\":\"mintPosition\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"stateMutability\":\"payable\",\"type\":\"function\"}";
+    private static final String SAUCERSWAP_V2_POOL_ASSOCIATE_TOKENS_ABI =
+            "{\"inputs\":[],\"name\":\"associateTokens\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
+    private static final String SAUCERSWAP_V2_POOL_INITIALIZE_ABI =
+            "{\"inputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
+    private static final String SAUCERSWAP_V2_POOL_BOOTSTRAP_LIQUIDITY_ABI =
+            "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"}],\"name\":\"bootstrapLiquidity\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
 
     private void setupPlexFeeCollector(SystemContext systemContext) {
         final byte[] initcode;
         try {
-            initcode = Files.readAllBytes(Paths.get(FEE_COLLECTOR_INITCODE_LOC));
+            initcode = Files.readAllBytes(resolvedInitcodePath(FEE_COLLECTOR_INITCODE_LOC));
             final var encoder = new HexMessageEncoder();
-            final var unhexedBytecode = encoder.decode(new String(initcode));
+            final var unhexedBytecode = encoder.decode(new String(initcode).trim());
             final var op = ContractCreateTransactionBody.newBuilder()
                     .initcode(Bytes.wrap(unhexedBytecode))
                     .autoRenewPeriod(new Duration(7776000L))
@@ -1316,13 +1418,46 @@ public class SystemTransactions {
     }
 
     private void setupSaucerSwapWhbar(SystemContext systemContext) {
+        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
         dispatchContractCreation(
                 systemContext,
-                MASTER_ID,
+                systemAdminNum,
                 SAUCERSWAP_WHBAR_CONTRACT_ID,
                 "Synthetic SaucerSwap WHBAR creation",
                 unhexedInitcodeAt(SAUCERSWAP_WHBAR_INITCODE_LOC),
                 4_000_000L);
+    }
+
+    private void setupSaucerSwapWhbarToken(SystemContext systemContext) {
+        final var op = TokenCreateTransactionBody.newBuilder()
+                .supplyKey(Key.newBuilder()
+                        .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_WHBAR_CONTRACT_ID).build())
+                        .build())
+                .tokenType(FUNGIBLE_COMMON)
+                .decimals(8)
+                .symbol("WHBAR")
+                .name("Wrapped Hbar")
+                .initialSupply(0L)
+                .treasury(AccountID.newBuilder().accountNum(SAUCERSWAP_WHBAR_CONTRACT_ID).build())
+                .build();
+        systemContext.dispatchCreation(
+                b -> b.memo("Synthetic SaucerSwap WHBAR token creation")
+                        .tokenCreation(op)
+                        .build(),
+                SAUCERSWAP_WHBAR_TOKEN_ID);
+    }
+
+    private void configureSaucerSwapWhbar(SystemContext systemContext) {
+        final var initialize = com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_WHBAR_INITIALIZE_ABI);
+        final var encodedCall = initialize.encodeCallWithArgs(longZeroAddressOf(SAUCERSWAP_WHBAR_TOKEN_ID)).array();
+        final var op = ContractCallTransactionBody.newBuilder()
+                .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_WHBAR_CONTRACT_ID))
+                .functionParameters(Bytes.wrap(encodedCall))
+                .gas(1_000_000L)
+                .build();
+        systemContext.dispatchAdmin(
+                b -> b.memo("Synthetic SaucerSwap WHBAR initialization")
+                        .contractCall(op));
     }
 
     private void setupSaucerSwapV2Factory(SystemContext systemContext) {
@@ -1340,7 +1475,7 @@ public class SystemTransactions {
         final var enableFeeAmount =
                 com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_ENABLE_FEE_AMOUNT_ABI);
         final var encodedCall = enableFeeAmount
-                .encodeCallWithArgs(BigInteger.valueOf(SAUCERSWAP_V2_FEE), SAUCERSWAP_V2_TICK_SPACING)
+                .encodeCallWithArgs(SAUCERSWAP_V2_FEE, SAUCERSWAP_V2_TICK_SPACING)
                 .array();
         final var op = ContractCallTransactionBody.newBuilder()
                 .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_V2_FACTORY_ID))
@@ -1365,7 +1500,7 @@ public class SystemTransactions {
                 SAUCERSWAP_V2_ROUTER_ID,
                 "Synthetic SaucerSwap V2 router creation",
                 initcodeWithArgs,
-                12_000_000L);
+                14_000_000L);
     }
 
     private void setupSaucerSwapV2Quoter(SystemContext systemContext) {
@@ -1381,7 +1516,7 @@ public class SystemTransactions {
                 SAUCERSWAP_V2_QUOTER_ID,
                 "Synthetic SaucerSwap V2 quoter creation",
                 initcodeWithArgs,
-                8_000_000L);
+                16_000_000L);
     }
 
     private void setupSaucerSwapV2Bootstrapper(SystemContext systemContext) {
@@ -1399,23 +1534,25 @@ public class SystemTransactions {
                 SAUCERSWAP_V2_BOOTSTRAPPER_ID,
                 "Synthetic SaucerSwap V2 bootstrapper creation",
                 initcodeWithArgs,
-                8_000_000L);
+                12_000_000L);
     }
 
     private void seedSaucerSwapV2Pool(SystemContext systemContext) {
+        final var syntheticSystemContext = (SyntheticSystemContext) systemContext;
         final var createPool =
                 com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_BOOTSTRAPPER_CREATE_POOL_ABI);
         final var createPoolCall = createPool
-                .encodeCallWithArgs(BigInteger.valueOf(SAUCERSWAP_V2_FEE), SAUCERSWAP_V2_INITIAL_SQRT_PRICE_X96)
+                .encodeCallWithArgs(SAUCERSWAP_V2_FEE, SAUCERSWAP_V2_INITIAL_SQRT_PRICE_X96)
                 .array();
         final var createPoolOp = ContractCallTransactionBody.newBuilder()
                 .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_V2_BOOTSTRAPPER_ID))
                 .functionParameters(Bytes.wrap(createPoolCall))
-                .gas(8_000_000L)
+                .gas(18_000_000L)
                 .build();
-        systemContext.dispatchAdmin(
+        final var createPoolOutput = syntheticSystemContext.dispatchAdminWithOutput(
                 b -> b.memo("Synthetic SaucerSwap V2 pool creation for HBAR-USDC")
                         .contractCall(createPoolOp));
+        final var poolId = createdContractNumFrom(createPoolOutput, "Synthetic SaucerSwap V2 pool creation for HBAR-USDC");
 
         final var wrapHbar =
                 com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_BOOTSTRAPPER_WRAP_HBAR_ABI);
@@ -1439,7 +1576,7 @@ public class SystemTransactions {
                                         .amount(-SAUCERSWAP_USDC_BOOTSTRAP_AMOUNT)
                                         .build(),
                                 AccountAmount.newBuilder()
-                                        .accountID(AccountID.newBuilder().accountNum(SAUCERSWAP_V2_BOOTSTRAPPER_ID))
+                                        .accountID(AccountID.newBuilder().accountNum(poolId))
                                         .amount(SAUCERSWAP_USDC_BOOTSTRAP_AMOUNT)
                                         .build())
                         .build())
@@ -1448,34 +1585,86 @@ public class SystemTransactions {
                 b -> b.memo("Synthetic SaucerSwap V2 USDC bootstrap funding")
                         .cryptoTransfer(usdcTransfer));
 
-        final var mintPosition =
-                com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_BOOTSTRAPPER_MINT_POSITION_ABI);
-        final var mintPositionCall = mintPosition
-                .encodeCallWithArgs(
-                        BigInteger.valueOf(SAUCERSWAP_V2_FEE),
-                        SAUCERSWAP_V2_TICK_LOWER,
-                        SAUCERSWAP_V2_TICK_UPPER,
-                        BigInteger.valueOf(SAUCERSWAP_USDC_BOOTSTRAP_AMOUNT),
-                        BigInteger.valueOf(SAUCERSWAP_HBAR_BOOTSTRAP_AMOUNT))
-                .array();
-        final var mintPositionOp = ContractCallTransactionBody.newBuilder()
-                .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_V2_BOOTSTRAPPER_ID))
-                .functionParameters(Bytes.wrap(mintPositionCall))
-                .gas(10_000_000L)
+        final var whbarTokenId = TokenID.newBuilder().tokenNum(SAUCERSWAP_WHBAR_TOKEN_ID).build();
+        final var whbarTransfer = CryptoTransferTransactionBody.newBuilder()
+                .tokenTransfers(TokenTransferList.newBuilder()
+                        .token(whbarTokenId)
+                        .transfers(
+                                AccountAmount.newBuilder()
+                                        .accountID(AccountID.newBuilder().accountNum(SAUCERSWAP_V2_BOOTSTRAPPER_ID))
+                                        .amount(-SAUCERSWAP_HBAR_BOOTSTRAP_AMOUNT)
+                                        .build(),
+                                AccountAmount.newBuilder()
+                                        .accountID(AccountID.newBuilder().accountNum(poolId))
+                                        .amount(SAUCERSWAP_HBAR_BOOTSTRAP_AMOUNT)
+                                        .build())
+                        .build())
                 .build();
         systemContext.dispatchAdmin(
-                b -> b.memo("Synthetic SaucerSwap V2 initial liquidity mint")
-                        .contractCall(mintPositionOp));
+                b -> b.memo("Synthetic SaucerSwap V2 WHBAR pool funding")
+                        .cryptoTransfer(whbarTransfer));
+
+        final var bootstrapLiquidity =
+                com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_POOL_BOOTSTRAP_LIQUIDITY_ABI);
+        final var bootstrapLiquidityCall = bootstrapLiquidity
+                .encodeCallWithArgs(
+                        longZeroAddressOf(MASTER_ID),
+                        SAUCERSWAP_V2_TICK_LOWER,
+                        SAUCERSWAP_V2_TICK_UPPER,
+                        BigInteger.valueOf(SAUCERSWAP_V2_BOOTSTRAP_LIQUIDITY))
+                .array();
+        final var bootstrapLiquidityOp = ContractCallTransactionBody.newBuilder()
+                .contractID(ContractID.newBuilder().contractNum(poolId))
+                .functionParameters(Bytes.wrap(bootstrapLiquidityCall))
+                .gas(8_000_000L)
+                .build();
+        systemContext.dispatchAdmin(
+                b -> b.memo("Synthetic SaucerSwap V2 initial liquidity bootstrap")
+                        .contractCall(bootstrapLiquidityOp));
+    }
+
+    private long createdContractNumFrom(@NonNull final HandleOutput output, @NonNull final String memo) {
+        final long[] createdContractNum = {0L};
+        output.preferringBlockRecordSource().forEachTxnRecord(record -> {
+            try {
+                final var createdIds = record.contractCallResultOrThrow().createdContractIDs();
+                if (!createdIds.isEmpty() && createdContractNum[0] == 0L) {
+                    createdContractNum[0] = createdIds.get(0).contractNumOrThrow();
+                }
+            } catch (Exception ignore) {
+            }
+        });
+        if (createdContractNum[0] == 0L) {
+            throw new IllegalStateException("No created contract id recorded for " + memo);
+        }
+        return createdContractNum[0];
     }
 
     private byte[] unhexedInitcodeAt(@NonNull final String location) {
         try {
-            final var initcode = Files.readAllBytes(Paths.get(location));
+            final var initcode = Files.readAllBytes(resolvedInitcodePath(location));
             final var encoder = new HexMessageEncoder();
-            return encoder.decode(new String(initcode));
+            return encoder.decode(new String(initcode).trim());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private java.nio.file.Path resolvedInitcodePath(@NonNull final String location) {
+        final var configured = Paths.get(location);
+        if (Files.exists(configured)) {
+            return configured;
+        }
+        final var fileName = configured.getFileName();
+        if (fileName != null) {
+            for (var dir = Paths.get("").toAbsolutePath(); dir != null; dir = dir.getParent()) {
+                final var candidate = dir.resolve(fileName.toString());
+                if (Files.exists(candidate)) {
+                    return candidate;
+                }
+            }
+        }
+        return configured;
     }
 
     private byte[] initcodeWithConstructorArgs(
@@ -1512,9 +1701,8 @@ public class SystemTransactions {
     private void setupSimpleErc20Initcode(SystemContext systemContext) {
         final byte[] initcode;
         try {
-            final var slash = FEE_COLLECTOR_INITCODE_LOC.lastIndexOf("/");
-            final var loc = FEE_COLLECTOR_INITCODE_LOC.substring(0, slash) + File.separator + ERC20_CONTRACT + ".bin";
-            initcode = Files.readAllBytes(Paths.get(loc));
+            final var loc = resolvedSiblingInitcodePath(FEE_COLLECTOR_INITCODE_LOC, ERC20_CONTRACT + ".bin");
+            initcode = Files.readAllBytes(loc);
             final var op = FileCreateTransactionBody.newBuilder()
                     .contents(Bytes.wrap(initcode))
                     .build();
@@ -1534,9 +1722,8 @@ public class SystemTransactions {
     private void setupMockPullOracleInitcode(SystemContext systemContext) {
         final byte[] initcode;
         try {
-            final var slash = FEE_COLLECTOR_INITCODE_LOC.lastIndexOf("/");
-            final var loc = FEE_COLLECTOR_INITCODE_LOC.substring(0, slash) + File.separator + MOCK_SUPRA_PULL_ORACLE_CONTRACT + ".bin";
-            initcode = Files.readAllBytes(Paths.get(loc));
+            final var loc = resolvedSiblingInitcodePath(FEE_COLLECTOR_INITCODE_LOC, MOCK_SUPRA_PULL_ORACLE_CONTRACT + ".bin");
+            initcode = Files.readAllBytes(loc);
             final var op = FileCreateTransactionBody.newBuilder()
                     .contents(Bytes.wrap(initcode))
                     .build();
@@ -1551,6 +1738,19 @@ public class SystemTransactions {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private java.nio.file.Path resolvedSiblingInitcodePath(
+            @NonNull final String anchorLocation, @NonNull final String siblingFileName) {
+        final var anchor = resolvedInitcodePath(anchorLocation);
+        final var parent = anchor.getParent();
+        if (parent != null) {
+            final var sibling = parent.resolve(siblingFileName);
+            if (Files.exists(sibling)) {
+                return sibling;
+            }
+        }
+        return resolvedInitcodePath(siblingFileName);
     }
 
     private static final String CONSTRUCTOR_ABI =
