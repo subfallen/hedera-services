@@ -123,6 +123,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -453,6 +454,7 @@ public class SystemTransactions {
         setupSaucerSwapWhbar(systemContext);
         setupSaucerSwapWhbarToken(systemContext);
         configureSaucerSwapWhbar(systemContext);
+        setupSaucerSwapV2Libraries(systemContext);
         setupSaucerSwapV2Factory(systemContext);
         configureSaucerSwapV2Factory(systemContext);
         setupSaucerSwapV2Router(systemContext);
@@ -952,11 +954,11 @@ public class SystemTransactions {
                         try {
                             final var result = record.contractCallResultOrThrow();
                             log.error(
-                                    "Failed system contract call '{}' gasUsed={} error='{}' result=0x{}",
+                                    "Failed system contract call '{}' gasUsed={} error='{}' result={}",
                                     body.memo(),
                                     result.gasUsed(),
-                                    result.errorMessage(),
-                                    result.contractCallResult().toHex());
+                                    describeContractError(result),
+                                    formatContractResult(result));
                         } catch (Exception ignore) {
                         }
                     });
@@ -1134,7 +1136,7 @@ public class SystemTransactions {
         if (body.hasContractCreateInstance()) {
             final var op = body.contractCreateInstanceOrThrow();
             log.error(
-                    "Failed system contract creation '{}' target={} status={} gas={} initcodeSource={} initcodeBytes={} constructorBytes={} gasUsed={} error='{}' createdContractIds={} result=0x{}",
+                    "Failed system contract creation '{}' target={} status={} gas={} initcodeSource={} initcodeBytes={} constructorBytes={} gasUsed={} error='{}' createdContractIds={} result={}",
                     body.memo(),
                     syntheticEntityId(nextEntityNum),
                     dispatch.streamBuilder().status(),
@@ -1143,15 +1145,15 @@ public class SystemTransactions {
                     op.hasFileID() ? 0 : op.initcode().length(),
                     op.constructorParameters().length(),
                     result == null ? "<none>" : result.gasUsed(),
-                    result == null ? "<none>" : result.errorMessage(),
+                    describeContractError(result),
                     result == null ? "<none>" : result.createdContractIDs(),
-                    result == null ? "<none>" : result.contractCallResult().toHex());
+                    formatContractResult(result));
             return;
         }
 
         final var op = body.contractCallOrThrow();
         log.error(
-                "Failed system contract call '{}' target={} status={} gas={} amount={} inputBytes={} gasUsed={} error='{}' createdContractIds={} result=0x{}",
+                "Failed system contract call '{}' target={} status={} gas={} amount={} inputBytes={} gasUsed={} error='{}' createdContractIds={} result={}",
                 body.memo(),
                 op.contractIDOrThrow(),
                 dispatch.streamBuilder().status(),
@@ -1159,9 +1161,66 @@ public class SystemTransactions {
                 op.amount(),
                 op.functionParameters().length(),
                 result == null ? "<none>" : result.gasUsed(),
-                result == null ? "<none>" : result.errorMessage(),
+                describeContractError(result),
                 result == null ? "<none>" : result.createdContractIDs(),
-                result == null ? "<none>" : result.contractCallResult().toHex());
+                formatContractResult(result));
+    }
+
+    private @NonNull String describeContractError(@Nullable final ContractFunctionResult result) {
+        if (result == null) {
+            return "<none>";
+        }
+        final var rawError = result.errorMessage();
+        final var decodedError = decodedRevertReason(rawError);
+        if (decodedError != null) {
+            return decodedError + " [raw=" + rawError + "]";
+        }
+        if (!rawError.isBlank()) {
+            return rawError;
+        }
+        final var rawResult = result.contractCallResult().toHex();
+        final var decodedResult = decodedRevertReason(rawResult);
+        if (decodedResult != null) {
+            return decodedResult + " [rawResult=0x" + rawResult + "]";
+        }
+        return "<empty>";
+    }
+
+    private @NonNull String formatContractResult(@Nullable final ContractFunctionResult result) {
+        if (result == null) {
+            return "<none>";
+        }
+        final var hex = result.contractCallResult().toHex();
+        return hex.isEmpty() ? "0x" : "0x" + hex;
+    }
+
+    static @Nullable String decodedRevertReason(@Nullable final String encodedError) {
+        if (encodedError == null || encodedError.isBlank()) {
+            return null;
+        }
+        final var hex = encodedError.startsWith("0x") || encodedError.startsWith("0X")
+                ? encodedError.substring(2)
+                : encodedError;
+        if (!hex.startsWith("08c379a0")) {
+            return null;
+        }
+        final int selectorChars = 8;
+        final int wordChars = 64;
+        final int lengthOffset = selectorChars + wordChars;
+        final int dataOffset = selectorChars + (2 * wordChars);
+        if (hex.length() < dataOffset) {
+            return null;
+        }
+        try {
+            final int messageLength = new BigInteger(hex.substring(lengthOffset, dataOffset), 16).intValueExact();
+            final int messageEnd = dataOffset + (2 * messageLength);
+            if (hex.length() < messageEnd) {
+                return null;
+            }
+            return new String(HexFormat.of().parseHex(hex.substring(dataOffset, messageEnd)), StandardCharsets.UTF_8);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     private @Nullable ContractFunctionResult contractResultOf(@NonNull final Dispatch dispatch) {
@@ -1250,6 +1309,11 @@ public class SystemTransactions {
     private static final long MOCK_SUPRA_PULL_INITCODE_ID = 8877L;
     private static final long MOCK_SUPRA_PULL_ORACLE = 888777L;
     private static final long FEE_COLLECTOR_ID = 1234567L;
+    private static final long SAUCERSWAP_V2_HBAR_CONVERSION_LIB_ID = 777770L;
+    private static final long SAUCERSWAP_V2_TICK_MATH_LIB_ID = 777771L;
+    private static final long SAUCERSWAP_V2_SWAP_MATH_LIB_ID = 777772L;
+    private static final long SAUCERSWAP_V2_ORACLE_LIB_ID = 777773L;
+    private static final long SAUCERSWAP_V2_BIT_MATH_LIB_ID = 777774L;
     private static final long SAUCERSWAP_WHBAR_CONTRACT_ID = 777776L;
     private static final long SAUCERSWAP_WHBAR_TOKEN_ID = 777777L;
     private static final long SAUCERSWAP_V2_FACTORY_ID = 777778L;
@@ -1350,6 +1414,21 @@ public class SystemTransactions {
             System.getenv().getOrDefault("FEE_COLLECTOR_INITCODE_LOC", "/app/LambdaplexFeeCollector.bin");
     private static final String SAUCERSWAP_WHBAR_INITCODE_LOC =
             System.getenv().getOrDefault("SAUCERSWAP_WHBAR_INITCODE_LOC", "/app/SaucerSwapWHBAR.bin");
+    private static final String SAUCERSWAP_V2_HBAR_CONVERSION_LIB_INITCODE_LOC =
+            System.getenv().getOrDefault(
+                    "SAUCERSWAP_V2_HBAR_CONVERSION_LIB_INITCODE_LOC", "/app/SaucerSwapV2HbarConversion.bin");
+    private static final String SAUCERSWAP_V2_TICK_MATH_LIB_INITCODE_LOC =
+            System.getenv().getOrDefault(
+                    "SAUCERSWAP_V2_TICK_MATH_LIB_INITCODE_LOC", "/app/SaucerSwapV2TickMath.bin");
+    private static final String SAUCERSWAP_V2_SWAP_MATH_LIB_INITCODE_LOC =
+            System.getenv().getOrDefault(
+                    "SAUCERSWAP_V2_SWAP_MATH_LIB_INITCODE_LOC", "/app/SaucerSwapV2SwapMath.bin");
+    private static final String SAUCERSWAP_V2_ORACLE_LIB_INITCODE_LOC =
+            System.getenv().getOrDefault(
+                    "SAUCERSWAP_V2_ORACLE_LIB_INITCODE_LOC", "/app/SaucerSwapV2Oracle.bin");
+    private static final String SAUCERSWAP_V2_BIT_MATH_LIB_INITCODE_LOC =
+            System.getenv().getOrDefault(
+                    "SAUCERSWAP_V2_BIT_MATH_LIB_INITCODE_LOC", "/app/SaucerSwapV2BitMath.bin");
     private static final String SAUCERSWAP_V2_FACTORY_INITCODE_LOC =
             System.getenv().getOrDefault("SAUCERSWAP_V2_FACTORY_INITCODE_LOC", "/app/SaucerSwapV2Factory.bin");
     private static final String SAUCERSWAP_V2_ROUTER_INITCODE_LOC =
@@ -1392,6 +1471,22 @@ public class SystemTransactions {
             "{\"inputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
     private static final String SAUCERSWAP_V2_POOL_BOOTSTRAP_LIQUIDITY_ABI =
             "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"}],\"name\":\"bootstrapLiquidity\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
+    private static final String SAUCERSWAP_V2_HBAR_CONVERSION_PLACEHOLDER =
+            "__$200933ea6da130fd0229ced79585e3a7d8$__";
+    private static final String SAUCERSWAP_V2_TICK_MATH_PLACEHOLDER =
+            "__$b52f7ddb7db4526c8b5c81c46a9292f776$__";
+    private static final String SAUCERSWAP_V2_SWAP_MATH_PLACEHOLDER =
+            "__$0bfb80e64db80801b8c84ca5a4f3d5625a$__";
+    private static final String SAUCERSWAP_V2_ORACLE_PLACEHOLDER =
+            "__$a07b62fc6554bedc1c2bb30ca3e36905b5$__";
+    private static final String SAUCERSWAP_V2_BIT_MATH_PLACEHOLDER =
+            "__$b0e7cb723832c483f6f53b3242f4ec39c0$__";
+    private static final Map<String, Long> SAUCERSWAP_V2_FACTORY_LINK_IDS = Map.of(
+            SAUCERSWAP_V2_HBAR_CONVERSION_PLACEHOLDER, SAUCERSWAP_V2_HBAR_CONVERSION_LIB_ID,
+            SAUCERSWAP_V2_TICK_MATH_PLACEHOLDER, SAUCERSWAP_V2_TICK_MATH_LIB_ID,
+            SAUCERSWAP_V2_SWAP_MATH_PLACEHOLDER, SAUCERSWAP_V2_SWAP_MATH_LIB_ID,
+            SAUCERSWAP_V2_ORACLE_PLACEHOLDER, SAUCERSWAP_V2_ORACLE_LIB_ID,
+            SAUCERSWAP_V2_BIT_MATH_PLACEHOLDER, SAUCERSWAP_V2_BIT_MATH_LIB_ID);
 
     private void setupPlexFeeCollector(SystemContext systemContext) {
         final byte[] initcode;
@@ -1460,6 +1555,49 @@ public class SystemTransactions {
                         .contractCall(op));
     }
 
+    private void setupSaucerSwapV2Libraries(SystemContext systemContext) {
+        setupSaucerSwapV2Library(
+                systemContext,
+                SAUCERSWAP_V2_HBAR_CONVERSION_LIB_ID,
+                "Synthetic SaucerSwap V2 HbarConversion library creation",
+                SAUCERSWAP_V2_HBAR_CONVERSION_LIB_INITCODE_LOC,
+                2_000_000L);
+        setupSaucerSwapV2Library(
+                systemContext,
+                SAUCERSWAP_V2_TICK_MATH_LIB_ID,
+                "Synthetic SaucerSwap V2 TickMath library creation",
+                SAUCERSWAP_V2_TICK_MATH_LIB_INITCODE_LOC,
+                2_000_000L);
+        setupSaucerSwapV2Library(
+                systemContext,
+                SAUCERSWAP_V2_SWAP_MATH_LIB_ID,
+                "Synthetic SaucerSwap V2 SwapMath library creation",
+                SAUCERSWAP_V2_SWAP_MATH_LIB_INITCODE_LOC,
+                3_000_000L);
+        setupSaucerSwapV2Library(
+                systemContext,
+                SAUCERSWAP_V2_ORACLE_LIB_ID,
+                "Synthetic SaucerSwap V2 Oracle library creation",
+                SAUCERSWAP_V2_ORACLE_LIB_INITCODE_LOC,
+                4_000_000L);
+        setupSaucerSwapV2Library(
+                systemContext,
+                SAUCERSWAP_V2_BIT_MATH_LIB_ID,
+                "Synthetic SaucerSwap V2 BitMath library creation",
+                SAUCERSWAP_V2_BIT_MATH_LIB_INITCODE_LOC,
+                2_000_000L);
+    }
+
+    private void setupSaucerSwapV2Library(
+            @NonNull final SystemContext systemContext,
+            final long contractId,
+            @NonNull final String memo,
+            @NonNull final String initcodeLoc,
+            final long gas) {
+        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        dispatchContractCreation(systemContext, systemAdminNum, contractId, memo, unhexedInitcodeAt(initcodeLoc), gas);
+    }
+
     private void setupSaucerSwapV2Factory(SystemContext systemContext) {
         final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
         dispatchContractCreation(
@@ -1467,8 +1605,8 @@ public class SystemTransactions {
                 systemAdminNum,
                 SAUCERSWAP_V2_FACTORY_ID,
                 "Synthetic SaucerSwap V2 factory creation",
-                unhexedInitcodeAt(SAUCERSWAP_V2_FACTORY_INITCODE_LOC),
-                10_000_000L);
+                linkedSaucerSwapV2FactoryInitcode(),
+                12_000_000L);
     }
 
     private void configureSaucerSwapV2Factory(SystemContext systemContext) {
@@ -1640,14 +1778,34 @@ public class SystemTransactions {
         return createdContractNum[0];
     }
 
-    private byte[] unhexedInitcodeAt(@NonNull final String location) {
+    static @NonNull String linkedSaucerSwapV2FactoryHexedInitcode(@NonNull final String hexedInitcode) {
+        requireNonNull(hexedInitcode);
+        var linkedInitcode = hexedInitcode.trim();
+        for (final var entry : SAUCERSWAP_V2_FACTORY_LINK_IDS.entrySet()) {
+            linkedInitcode = linkedInitcode.replace(entry.getKey(), Bytes.wrap(asEvmAddress(entry.getValue())).toHex());
+        }
+        if (linkedInitcode.contains("__$")) {
+            throw new IllegalStateException("Unresolved SaucerSwap V2 factory library placeholders remain");
+        }
+        return linkedInitcode;
+    }
+
+    private byte[] linkedSaucerSwapV2FactoryInitcode() {
+        final var encoder = new HexMessageEncoder();
+        return encoder.decode(linkedSaucerSwapV2FactoryHexedInitcode(hexedInitcodeAt(SAUCERSWAP_V2_FACTORY_INITCODE_LOC)));
+    }
+
+    private @NonNull String hexedInitcodeAt(@NonNull final String location) {
         try {
-            final var initcode = Files.readAllBytes(resolvedInitcodePath(location));
-            final var encoder = new HexMessageEncoder();
-            return encoder.decode(new String(initcode).trim());
+            return Files.readString(resolvedInitcodePath(location)).trim();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private byte[] unhexedInitcodeAt(@NonNull final String location) {
+        final var encoder = new HexMessageEncoder();
+        return encoder.decode(hexedInitcodeAt(location));
     }
 
     private java.nio.file.Path resolvedInitcodePath(@NonNull final String location) {

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -182,6 +183,39 @@ class SystemTransactionsTest {
         // but we can verify the method doesn't throw
         assertDoesNotThrow(() -> subject.resetNextDispatchNonce());
     }
+
+    @Test
+    void decodesAbiErrorStringReason() {
+        assertEquals(
+                "pool-mint-empty",
+                SystemTransactions.decodedRevertReason(
+                        "0x08c379a000000000000000000000000000000000000000000000000000000000"
+                                + "0000002000000000000000000000000000000000000000000000000000000000"
+                                + "0000000f706f6f6c2d6d696e742d656d70747900000000000000000000000000"
+                                + "00000000"));
+    }
+
+    @Test
+    void ignoresNonAbiErrorStringReason() {
+        assertNull(SystemTransactions.decodedRevertReason("CONTRACT_REVERT_EXECUTED"));
+    }
+
+    @Test
+    void linksSaucerSwapV2FactoryPlaceholders() {
+        assertEquals(
+                "00000000000000000000000000000000000bde2a"
+                        + "00000000000000000000000000000000000bde2b"
+                        + "00000000000000000000000000000000000bde2c"
+                        + "00000000000000000000000000000000000bde2d"
+                        + "00000000000000000000000000000000000bde2e",
+                SystemTransactions.linkedSaucerSwapV2FactoryHexedInitcode(
+                        "__$200933ea6da130fd0229ced79585e3a7d8$__"
+                                + "__$b52f7ddb7db4526c8b5c81c46a9292f776$__"
+                                + "__$0bfb80e64db80801b8c84ca5a4f3d5625a$__"
+                                + "__$a07b62fc6554bedc1c2bb30ca3e36905b5$__"
+                                + "__$b0e7cb723832c483f6f53b3242f4ec39c0$__"));
+    }
+
 
     @Test
     void testFirstReservedSystemTimeForNonGenesis() {

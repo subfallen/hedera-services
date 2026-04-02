@@ -11,6 +11,11 @@ COPY SimpleERC20.bin /app/SimpleERC20.bin
 COPY MockSupraOraclePull.bin /app/MockSupraOraclePull.bin
 COPY LambdaplexFeeCollector.bin /app/LambdaplexFeeCollector.bin
 COPY SaucerSwapWHBAR.bin /app/SaucerSwapWHBAR.bin
+COPY SaucerSwapV2HbarConversion.bin /app/SaucerSwapV2HbarConversion.bin
+COPY SaucerSwapV2TickMath.bin /app/SaucerSwapV2TickMath.bin
+COPY SaucerSwapV2SwapMath.bin /app/SaucerSwapV2SwapMath.bin
+COPY SaucerSwapV2Oracle.bin /app/SaucerSwapV2Oracle.bin
+COPY SaucerSwapV2BitMath.bin /app/SaucerSwapV2BitMath.bin
 COPY SaucerSwapV2Factory.bin /app/SaucerSwapV2Factory.bin
 COPY SaucerSwapV2SwapRouter.bin /app/SaucerSwapV2SwapRouter.bin
 COPY SaucerSwapV2Quoter.bin /app/SaucerSwapV2Quoter.bin

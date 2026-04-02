@@ -8,6 +8,11 @@
 !MockSupraOraclePull.bin
 !LambdaplexFeeCollector.bin
 !SaucerSwapWHBAR.bin
+!SaucerSwapV2HbarConversion.bin
+!SaucerSwapV2TickMath.bin
+!SaucerSwapV2SwapMath.bin
+!SaucerSwapV2Oracle.bin
+!SaucerSwapV2BitMath.bin
 !SaucerSwapV2Factory.bin
 !SaucerSwapV2SwapRouter.bin
 !SaucerSwapV2Quoter.bin
