@@ -117,7 +117,6 @@ import com.swirlds.state.spi.WritableSingletonStateBase;
 import com.swirlds.state.spi.WritableStates;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -1291,6 +1290,7 @@ public class SystemTransactions {
     private static final long FIRST_TOPIC_NUM = 30000L;
     private static final long VAULT_FARMER_ID = 333333L;
     private static final long AIRDROP_SEEDER_ID = 444444L;
+    private static final long VAULT_MANAGER_ID = 19999991L;
 
     private static final String A4589187_PUBLIC_KEY =
             "ac228a873619e041648113a84f12079b8af8522073adc343e1a91594f0b1c05d";
@@ -1327,6 +1327,8 @@ public class SystemTransactions {
             MASTER_ID,
             MASTER_KEY,
             AIRDROP_SEEDER_ID,
+            MASTER_KEY,
+            VAULT_MANAGER_ID,
             MASTER_KEY,
             VAULT_FARMER_ID,
             MASTER_KEY,
@@ -1880,8 +1882,10 @@ public class SystemTransactions {
     private void setupMockPullOracleInitcode(SystemContext systemContext) {
         final byte[] initcode;
         try {
-            final var loc = resolvedSiblingInitcodePath(FEE_COLLECTOR_INITCODE_LOC, MOCK_SUPRA_PULL_ORACLE_CONTRACT + ".bin");
-            initcode = Files.readAllBytes(loc);
+            final var slash = FEE_COLLECTOR_INITCODE_LOC.lastIndexOf("/");
+            final var loc = FEE_COLLECTOR_INITCODE_LOC.substring(0, slash) + File.separator
+                    + MOCK_SUPRA_PULL_ORACLE_CONTRACT + ".bin";
+            initcode = Files.readAllBytes(Paths.get(loc));
             final var op = FileCreateTransactionBody.newBuilder()
                     .contents(Bytes.wrap(initcode))
                     .build();
