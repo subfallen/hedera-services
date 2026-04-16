@@ -799,7 +799,7 @@ public final class Hedera
                                     null);
                         },
                         8,
-                        8,
+                        2,
                         TimeUnit.SECONDS);
         if (false) {
             final var nextIsAbort = new AtomicBoolean();
