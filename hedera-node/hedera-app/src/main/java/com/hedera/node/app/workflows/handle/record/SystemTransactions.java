@@ -1131,6 +1131,7 @@ public class SystemTransactions {
     private static final long VAULT_FARMER_ID = 333333L;
     private static final long AIRDROP_SEEDER_ID = 444444L;
     private static final long VAULT_MANAGER_ID = 19999991L;
+    private static final long PREDICTIONS_MANAGER_ID = 29999992L;
 
     private static final String A4589187_PUBLIC_KEY =
             "ac228a873619e041648113a84f12079b8af8522073adc343e1a91594f0b1c05d";
@@ -1157,6 +1158,8 @@ public class SystemTransactions {
             AIRDROP_SEEDER_ID,
             MASTER_KEY,
             VAULT_MANAGER_ID,
+            MASTER_KEY,
+            PREDICTIONS_MANAGER_ID,
             MASTER_KEY,
             VAULT_FARMER_ID,
             MASTER_KEY,
