@@ -5,7 +5,10 @@ import static com.hedera.node.app.hapi.utils.SignatureGenerator.BOUNCYCASTLE_PRO
 import static org.hiero.base.utility.CommonUtils.hex;
 
 import com.google.protobuf.ByteString;
+import com.hedera.services.bdd.spec.utilops.inventory.SpecKeyFromEcdsaFile;
 import com.hederahashgraph.api.proto.java.Key;
+
+import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -13,6 +16,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.interfaces.ECPrivateKey;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Arrays;
 import java.util.Map;
@@ -35,6 +39,16 @@ public enum DefaultKeyGen implements KeyGenerator {
         } catch (final NoSuchAlgorithmException | InvalidAlgorithmParameterException fatal) {
             throw new IllegalStateException(fatal);
         }
+    }
+
+    static void main() {
+        final var hexedPkToSk = new java.util.HashMap<String, PrivateKey>();
+        DEFAULT_KEY_GEN.genEcdsaSecp256k1AndUpdate(hexedPkToSk);
+        final var entry = hexedPkToSk.entrySet().iterator().next();
+        BigInteger s = ((ECPrivateKey) entry.getValue()).getS();
+        String hexedPrivateKey = String.format("%064x", s);
+        System.out.println("Private key: " + hexedPrivateKey);
+        System.out.println("Public key : " + entry.getKey());
     }
 
     @Override

@@ -931,7 +931,8 @@ public class SystemTransactions {
             }
 
             @Override
-            public @NonNull HandleOutput dispatchAdminWithOutput(@NonNull final Consumer<TransactionBody.Builder> spec) {
+            public @NonNull HandleOutput dispatchAdminWithOutput(
+                    @NonNull final Consumer<TransactionBody.Builder> spec) {
                 requireNonNull(spec);
                 final var builder = TransactionBody.newBuilder()
                         .nodeAccountID(creatorInfo.accountId())
@@ -965,7 +966,10 @@ public class SystemTransactions {
                 } else if (body.memo().startsWith("Synthetic SaucerSwap V2 pool creation")) {
                     output.preferringBlockRecordSource().forEachTxnRecord(record -> {
                         try {
-                            log.info("Successful system contract call '{}' -> {}", body.memo(), record.contractCallResultOrThrow());
+                            log.info(
+                                    "Successful system contract call '{}' -> {}",
+                                    body.memo(),
+                                    record.contractCallResultOrThrow());
                         } catch (Exception ignore) {
                         }
                     });
@@ -1225,10 +1229,11 @@ public class SystemTransactions {
     private @Nullable ContractFunctionResult contractResultOf(@NonNull final Dispatch dispatch) {
         return switch (dispatch.streamBuilder()) {
             case RecordStreamBuilder recordBuilder ->
-                    recordBuilder.hasContractResult() ? recordBuilder.contractFunctionResult() : null;
-            case PairedStreamBuilder pairedBuilder -> pairedBuilder.recordStreamBuilder().hasContractResult()
-                    ? pairedBuilder.recordStreamBuilder().contractFunctionResult()
-                    : null;
+                recordBuilder.hasContractResult() ? recordBuilder.contractFunctionResult() : null;
+            case PairedStreamBuilder pairedBuilder ->
+                pairedBuilder.recordStreamBuilder().hasContractResult()
+                        ? pairedBuilder.recordStreamBuilder().contractFunctionResult()
+                        : null;
             default -> null;
         };
     }
@@ -1293,6 +1298,11 @@ public class SystemTransactions {
     private static final long VAULT_MANAGER_ID = 19999991L;
     private static final long PREDICTIONS_MANAGER_ID = 29999992L;
 
+    private static final String MM_ECDSA_PUBLIC_KEY =
+            "031d6ff7764bbe946d38585780344dcfec854cd82d89d9a0cd5d791f3ed3f37f6d";
+    private static final String TRADER_ECDSA_PUBLIC_KEY =
+            "03760246f2c3e01e7c4c818c0f499dce566df2d6a0ac3371afd63a79d935680831";
+
     private static final String A4589187_PUBLIC_KEY =
             "ac228a873619e041648113a84f12079b8af8522073adc343e1a91594f0b1c05d";
     private static final String A4589188_PUBLIC_KEY =
@@ -1321,9 +1331,44 @@ public class SystemTransactions {
     private static final long SAUCERSWAP_V2_ROUTER_ID = 777779L;
     private static final long SAUCERSWAP_V2_QUOTER_ID = 777780L;
     private static final long SAUCERSWAP_V2_BOOTSTRAPPER_ID = 777781L;
-    private static final long SAUCERSWAP_V2_POOL_ID = 777782L;
-    private static final Key MASTER_KEY =
-            Key.newBuilder().ed25519(Bytes.fromHex(A4589187_PUBLIC_KEY)).build();
+    private static final Key MASTER_KEY = Key.newBuilder()
+            .thresholdKey(ThresholdKey.newBuilder()
+                    .threshold(1)
+                    .keys(KeyList.newBuilder()
+                            .keys(
+                                    Key.newBuilder()
+                                            .ed25519(Bytes.fromHex(A4589187_PUBLIC_KEY))
+                                            .build(),
+                                    Key.newBuilder()
+                                            .ecdsaSecp256k1(Bytes.fromHex(MM_ECDSA_PUBLIC_KEY))
+                                            .build())
+                            .build())
+                    .build())
+            .build();
+
+    private static Key asEcdsaThreshold(Key key, String hexedEcdsaKey) {
+        return Key.newBuilder()
+                .thresholdKey(ThresholdKey.newBuilder()
+                        .threshold(1)
+                        .keys(KeyList.newBuilder()
+                                .keys(
+                                        key,
+                                        Key.newBuilder()
+                                                .ecdsaSecp256k1(Bytes.fromHex(hexedEcdsaKey))
+                                                .build())
+                                .build())
+                        .build())
+                .build();
+    }
+
+    private static Key asTraderThreshold(Key key) {
+        return asEcdsaThreshold(key, TRADER_ECDSA_PUBLIC_KEY);
+    }
+
+    private static Key asMarketMakerThreshold(Key key) {
+        return asEcdsaThreshold(key, MM_ECDSA_PUBLIC_KEY);
+    }
+
     private static final Map<Long, Key> WELL_KNOWN_KEYS = Map.of(
             MASTER_ID,
             MASTER_KEY,
@@ -1336,13 +1381,13 @@ public class SystemTransactions {
             VAULT_FARMER_ID,
             MASTER_KEY,
             4589188L,
-            Key.newBuilder().ed25519(Bytes.fromHex(A4589188_PUBLIC_KEY)).build(),
+            asMarketMakerThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589188_PUBLIC_KEY)).build()),
             4589189L,
-            Key.newBuilder().ed25519(Bytes.fromHex(A4589189_PUBLIC_KEY)).build(),
+            asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589189_PUBLIC_KEY)).build()),
             4589190L,
-            Key.newBuilder().ed25519(Bytes.fromHex(A4589190_PUBLIC_KEY)).build(),
+            asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589190_PUBLIC_KEY)).build()),
             4589192L,
-            Key.newBuilder().ed25519(Bytes.fromHex(A4589192_PUBLIC_KEY)).build(),
+            asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589192_PUBLIC_KEY)).build()),
             9266133L,
             Key.newBuilder().ecdsaSecp256k1(Bytes.fromHex(A9266133_PUBLIC_KEY)).build());
     private static final int NUM_TOPICS = 1;
@@ -1419,30 +1464,24 @@ public class SystemTransactions {
             System.getenv().getOrDefault("FEE_COLLECTOR_INITCODE_LOC", "/app/LambdaplexFeeCollector.bin");
     private static final String SAUCERSWAP_WHBAR_INITCODE_LOC =
             System.getenv().getOrDefault("SAUCERSWAP_WHBAR_INITCODE_LOC", "/app/SaucerSwapWHBAR.bin");
-    private static final String SAUCERSWAP_V2_HBAR_CONVERSION_LIB_INITCODE_LOC =
-            System.getenv().getOrDefault(
-                    "SAUCERSWAP_V2_HBAR_CONVERSION_LIB_INITCODE_LOC", "/app/SaucerSwapV2HbarConversion.bin");
+    private static final String SAUCERSWAP_V2_HBAR_CONVERSION_LIB_INITCODE_LOC = System.getenv()
+            .getOrDefault("SAUCERSWAP_V2_HBAR_CONVERSION_LIB_INITCODE_LOC", "/app/SaucerSwapV2HbarConversion.bin");
     private static final String SAUCERSWAP_V2_TICK_MATH_LIB_INITCODE_LOC =
-            System.getenv().getOrDefault(
-                    "SAUCERSWAP_V2_TICK_MATH_LIB_INITCODE_LOC", "/app/SaucerSwapV2TickMath.bin");
+            System.getenv().getOrDefault("SAUCERSWAP_V2_TICK_MATH_LIB_INITCODE_LOC", "/app/SaucerSwapV2TickMath.bin");
     private static final String SAUCERSWAP_V2_SWAP_MATH_LIB_INITCODE_LOC =
-            System.getenv().getOrDefault(
-                    "SAUCERSWAP_V2_SWAP_MATH_LIB_INITCODE_LOC", "/app/SaucerSwapV2SwapMath.bin");
+            System.getenv().getOrDefault("SAUCERSWAP_V2_SWAP_MATH_LIB_INITCODE_LOC", "/app/SaucerSwapV2SwapMath.bin");
     private static final String SAUCERSWAP_V2_ORACLE_LIB_INITCODE_LOC =
-            System.getenv().getOrDefault(
-                    "SAUCERSWAP_V2_ORACLE_LIB_INITCODE_LOC", "/app/SaucerSwapV2Oracle.bin");
+            System.getenv().getOrDefault("SAUCERSWAP_V2_ORACLE_LIB_INITCODE_LOC", "/app/SaucerSwapV2Oracle.bin");
     private static final String SAUCERSWAP_V2_BIT_MATH_LIB_INITCODE_LOC =
-            System.getenv().getOrDefault(
-                    "SAUCERSWAP_V2_BIT_MATH_LIB_INITCODE_LOC", "/app/SaucerSwapV2BitMath.bin");
+            System.getenv().getOrDefault("SAUCERSWAP_V2_BIT_MATH_LIB_INITCODE_LOC", "/app/SaucerSwapV2BitMath.bin");
     private static final String SAUCERSWAP_V2_FACTORY_INITCODE_LOC =
             System.getenv().getOrDefault("SAUCERSWAP_V2_FACTORY_INITCODE_LOC", "/app/SaucerSwapV2Factory.bin");
     private static final String SAUCERSWAP_V2_ROUTER_INITCODE_LOC =
             System.getenv().getOrDefault("SAUCERSWAP_V2_ROUTER_INITCODE_LOC", "/app/SaucerSwapV2SwapRouter.bin");
     private static final String SAUCERSWAP_V2_QUOTER_INITCODE_LOC =
             System.getenv().getOrDefault("SAUCERSWAP_V2_QUOTER_INITCODE_LOC", "/app/SaucerSwapV2Quoter.bin");
-    private static final String SAUCERSWAP_V2_BOOTSTRAPPER_INITCODE_LOC =
-            System.getenv().getOrDefault(
-                    "SAUCERSWAP_V2_BOOTSTRAPPER_INITCODE_LOC", "/app/SaucerSwapV2Bootstrapper.bin");
+    private static final String SAUCERSWAP_V2_BOOTSTRAPPER_INITCODE_LOC = System.getenv()
+            .getOrDefault("SAUCERSWAP_V2_BOOTSTRAPPER_INITCODE_LOC", "/app/SaucerSwapV2Bootstrapper.bin");
     private static final String ERC20_CONTRACT = "SimpleERC20";
     private static final String MOCK_SUPRA_PULL_ORACLE_CONTRACT = "MockSupraOraclePull";
     private static final long SAUCERSWAP_HBAR_BOOTSTRAP_AMOUNT = 9_999_999_999_999L;
@@ -1476,16 +1515,11 @@ public class SystemTransactions {
             "{\"inputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
     private static final String SAUCERSWAP_V2_POOL_BOOTSTRAP_LIQUIDITY_ABI =
             "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"}],\"name\":\"bootstrapLiquidity\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
-    private static final String SAUCERSWAP_V2_HBAR_CONVERSION_PLACEHOLDER =
-            "__$200933ea6da130fd0229ced79585e3a7d8$__";
-    private static final String SAUCERSWAP_V2_TICK_MATH_PLACEHOLDER =
-            "__$b52f7ddb7db4526c8b5c81c46a9292f776$__";
-    private static final String SAUCERSWAP_V2_SWAP_MATH_PLACEHOLDER =
-            "__$0bfb80e64db80801b8c84ca5a4f3d5625a$__";
-    private static final String SAUCERSWAP_V2_ORACLE_PLACEHOLDER =
-            "__$a07b62fc6554bedc1c2bb30ca3e36905b5$__";
-    private static final String SAUCERSWAP_V2_BIT_MATH_PLACEHOLDER =
-            "__$b0e7cb723832c483f6f53b3242f4ec39c0$__";
+    private static final String SAUCERSWAP_V2_HBAR_CONVERSION_PLACEHOLDER = "__$200933ea6da130fd0229ced79585e3a7d8$__";
+    private static final String SAUCERSWAP_V2_TICK_MATH_PLACEHOLDER = "__$b52f7ddb7db4526c8b5c81c46a9292f776$__";
+    private static final String SAUCERSWAP_V2_SWAP_MATH_PLACEHOLDER = "__$0bfb80e64db80801b8c84ca5a4f3d5625a$__";
+    private static final String SAUCERSWAP_V2_ORACLE_PLACEHOLDER = "__$a07b62fc6554bedc1c2bb30ca3e36905b5$__";
+    private static final String SAUCERSWAP_V2_BIT_MATH_PLACEHOLDER = "__$b0e7cb723832c483f6f53b3242f4ec39c0$__";
     private static final Map<String, Long> SAUCERSWAP_V2_FACTORY_LINK_IDS = Map.of(
             SAUCERSWAP_V2_HBAR_CONVERSION_PLACEHOLDER, SAUCERSWAP_V2_HBAR_CONVERSION_LIB_ID,
             SAUCERSWAP_V2_TICK_MATH_PLACEHOLDER, SAUCERSWAP_V2_TICK_MATH_LIB_ID,
@@ -1518,7 +1552,10 @@ public class SystemTransactions {
     }
 
     private void setupSaucerSwapWhbar(SystemContext systemContext) {
-        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        final var systemAdminNum = systemContext
+                .configuration()
+                .getConfigData(AccountsConfig.class)
+                .systemAdmin();
         dispatchContractCreation(
                 systemContext,
                 systemAdminNum,
@@ -1531,14 +1568,18 @@ public class SystemTransactions {
     private void setupSaucerSwapWhbarToken(SystemContext systemContext) {
         final var op = TokenCreateTransactionBody.newBuilder()
                 .supplyKey(Key.newBuilder()
-                        .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_WHBAR_CONTRACT_ID).build())
+                        .contractID(ContractID.newBuilder()
+                                .contractNum(SAUCERSWAP_WHBAR_CONTRACT_ID)
+                                .build())
                         .build())
                 .tokenType(FUNGIBLE_COMMON)
                 .decimals(8)
                 .symbol("WHBAR")
                 .name("Wrapped Hbar")
                 .initialSupply(0L)
-                .treasury(AccountID.newBuilder().accountNum(SAUCERSWAP_WHBAR_CONTRACT_ID).build())
+                .treasury(AccountID.newBuilder()
+                        .accountNum(SAUCERSWAP_WHBAR_CONTRACT_ID)
+                        .build())
                 .build();
         systemContext.dispatchCreation(
                 b -> b.memo("Synthetic SaucerSwap WHBAR token creation")
@@ -1549,15 +1590,16 @@ public class SystemTransactions {
 
     private void configureSaucerSwapWhbar(SystemContext systemContext) {
         final var initialize = com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_WHBAR_INITIALIZE_ABI);
-        final var encodedCall = initialize.encodeCallWithArgs(longZeroAddressOf(SAUCERSWAP_WHBAR_TOKEN_ID)).array();
+        final var encodedCall = initialize
+                .encodeCallWithArgs(longZeroAddressOf(SAUCERSWAP_WHBAR_TOKEN_ID))
+                .array();
         final var op = ContractCallTransactionBody.newBuilder()
                 .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_WHBAR_CONTRACT_ID))
                 .functionParameters(Bytes.wrap(encodedCall))
                 .gas(1_000_000L)
                 .build();
         systemContext.dispatchAdmin(
-                b -> b.memo("Synthetic SaucerSwap WHBAR initialization")
-                        .contractCall(op));
+                b -> b.memo("Synthetic SaucerSwap WHBAR initialization").contractCall(op));
     }
 
     private void setupSaucerSwapV2Libraries(SystemContext systemContext) {
@@ -1599,12 +1641,18 @@ public class SystemTransactions {
             @NonNull final String memo,
             @NonNull final String initcodeLoc,
             final long gas) {
-        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        final var systemAdminNum = systemContext
+                .configuration()
+                .getConfigData(AccountsConfig.class)
+                .systemAdmin();
         dispatchContractCreation(systemContext, systemAdminNum, contractId, memo, unhexedInitcodeAt(initcodeLoc), gas);
     }
 
     private void setupSaucerSwapV2Factory(SystemContext systemContext) {
-        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        final var systemAdminNum = systemContext
+                .configuration()
+                .getConfigData(AccountsConfig.class)
+                .systemAdmin();
         dispatchContractCreation(
                 systemContext,
                 systemAdminNum,
@@ -1615,8 +1663,7 @@ public class SystemTransactions {
     }
 
     private void configureSaucerSwapV2Factory(SystemContext systemContext) {
-        final var enableFeeAmount =
-                com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_ENABLE_FEE_AMOUNT_ABI);
+        final var enableFeeAmount = com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_ENABLE_FEE_AMOUNT_ABI);
         final var encodedCall = enableFeeAmount
                 .encodeCallWithArgs(SAUCERSWAP_V2_FEE, SAUCERSWAP_V2_TICK_SPACING)
                 .array();
@@ -1626,12 +1673,14 @@ public class SystemTransactions {
                 .gas(2_000_000L)
                 .build();
         systemContext.dispatchAdmin(
-                b -> b.memo("Synthetic SaucerSwap V2 factory configuration")
-                        .contractCall(op));
+                b -> b.memo("Synthetic SaucerSwap V2 factory configuration").contractCall(op));
     }
 
     private void setupSaucerSwapV2Router(SystemContext systemContext) {
-        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        final var systemAdminNum = systemContext
+                .configuration()
+                .getConfigData(AccountsConfig.class)
+                .systemAdmin();
         final var initcodeWithArgs = initcodeWithConstructorArgs(
                 unhexedInitcodeAt(SAUCERSWAP_V2_ROUTER_INITCODE_LOC),
                 SAUCERSWAP_ROUTER_OR_QUOTER_CONSTRUCTOR_ABI,
@@ -1647,7 +1696,10 @@ public class SystemTransactions {
     }
 
     private void setupSaucerSwapV2Quoter(SystemContext systemContext) {
-        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        final var systemAdminNum = systemContext
+                .configuration()
+                .getConfigData(AccountsConfig.class)
+                .systemAdmin();
         final var initcodeWithArgs = initcodeWithConstructorArgs(
                 unhexedInitcodeAt(SAUCERSWAP_V2_QUOTER_INITCODE_LOC),
                 SAUCERSWAP_ROUTER_OR_QUOTER_CONSTRUCTOR_ABI,
@@ -1663,7 +1715,10 @@ public class SystemTransactions {
     }
 
     private void setupSaucerSwapV2Bootstrapper(SystemContext systemContext) {
-        final var systemAdminNum = systemContext.configuration().getConfigData(AccountsConfig.class).systemAdmin();
+        final var systemAdminNum = systemContext
+                .configuration()
+                .getConfigData(AccountsConfig.class)
+                .systemAdmin();
         final var initcodeWithArgs = initcodeWithConstructorArgs(
                 unhexedInitcodeAt(SAUCERSWAP_V2_BOOTSTRAPPER_INITCODE_LOC),
                 SAUCERSWAP_BOOTSTRAPPER_CONSTRUCTOR_ABI,
@@ -1692,13 +1747,12 @@ public class SystemTransactions {
                 .functionParameters(Bytes.wrap(createPoolCall))
                 .gas(18_000_000L)
                 .build();
-        final var createPoolOutput = syntheticSystemContext.dispatchAdminWithOutput(
-                b -> b.memo("Synthetic SaucerSwap V2 pool creation for HBAR-USDC")
-                        .contractCall(createPoolOp));
-        final var poolId = createdContractNumFrom(createPoolOutput, "Synthetic SaucerSwap V2 pool creation for HBAR-USDC");
+        final var createPoolOutput = syntheticSystemContext.dispatchAdminWithOutput(b ->
+                b.memo("Synthetic SaucerSwap V2 pool creation for HBAR-USDC").contractCall(createPoolOp));
+        final var poolId =
+                createdContractNumFrom(createPoolOutput, "Synthetic SaucerSwap V2 pool creation for HBAR-USDC");
 
-        final var wrapHbar =
-                com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_BOOTSTRAPPER_WRAP_HBAR_ABI);
+        final var wrapHbar = com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_BOOTSTRAPPER_WRAP_HBAR_ABI);
         final var wrapHbarOp = ContractCallTransactionBody.newBuilder()
                 .contractID(ContractID.newBuilder().contractNum(SAUCERSWAP_V2_BOOTSTRAPPER_ID))
                 .functionParameters(Bytes.wrap(wrapHbar.encodeCallWithArgs().array()))
@@ -1706,10 +1760,11 @@ public class SystemTransactions {
                 .gas(4_000_000L)
                 .build();
         systemContext.dispatchAdmin(
-                b -> b.memo("Synthetic SaucerSwap V2 WHBAR bootstrap funding")
-                        .contractCall(wrapHbarOp));
+                b -> b.memo("Synthetic SaucerSwap V2 WHBAR bootstrap funding").contractCall(wrapHbarOp));
 
-        final var usdcTokenId = TokenID.newBuilder().tokenNum(tokenNumForSymbol(SAUCERSWAP_POOL_QUOTE_SYMBOL)).build();
+        final var usdcTokenId = TokenID.newBuilder()
+                .tokenNum(tokenNumForSymbol(SAUCERSWAP_POOL_QUOTE_SYMBOL))
+                .build();
         final var usdcTransfer = CryptoTransferTransactionBody.newBuilder()
                 .tokenTransfers(TokenTransferList.newBuilder()
                         .token(usdcTokenId)
@@ -1725,10 +1780,10 @@ public class SystemTransactions {
                         .build())
                 .build();
         systemContext.dispatchAdmin(
-                b -> b.memo("Synthetic SaucerSwap V2 USDC bootstrap funding")
-                        .cryptoTransfer(usdcTransfer));
+                b -> b.memo("Synthetic SaucerSwap V2 USDC bootstrap funding").cryptoTransfer(usdcTransfer));
 
-        final var whbarTokenId = TokenID.newBuilder().tokenNum(SAUCERSWAP_WHBAR_TOKEN_ID).build();
+        final var whbarTokenId =
+                TokenID.newBuilder().tokenNum(SAUCERSWAP_WHBAR_TOKEN_ID).build();
         final var whbarTransfer = CryptoTransferTransactionBody.newBuilder()
                 .tokenTransfers(TokenTransferList.newBuilder()
                         .token(whbarTokenId)
@@ -1744,8 +1799,7 @@ public class SystemTransactions {
                         .build())
                 .build();
         systemContext.dispatchAdmin(
-                b -> b.memo("Synthetic SaucerSwap V2 WHBAR pool funding")
-                        .cryptoTransfer(whbarTransfer));
+                b -> b.memo("Synthetic SaucerSwap V2 WHBAR pool funding").cryptoTransfer(whbarTransfer));
 
         final var bootstrapLiquidity =
                 com.esaulpaugh.headlong.abi.Function.fromJson(SAUCERSWAP_V2_POOL_BOOTSTRAP_LIQUIDITY_ABI);
@@ -1761,9 +1815,8 @@ public class SystemTransactions {
                 .functionParameters(Bytes.wrap(bootstrapLiquidityCall))
                 .gas(8_000_000L)
                 .build();
-        systemContext.dispatchAdmin(
-                b -> b.memo("Synthetic SaucerSwap V2 initial liquidity bootstrap")
-                        .contractCall(bootstrapLiquidityOp));
+        systemContext.dispatchAdmin(b ->
+                b.memo("Synthetic SaucerSwap V2 initial liquidity bootstrap").contractCall(bootstrapLiquidityOp));
     }
 
     private long createdContractNumFrom(@NonNull final HandleOutput output, @NonNull final String memo) {
@@ -1787,7 +1840,8 @@ public class SystemTransactions {
         requireNonNull(hexedInitcode);
         var linkedInitcode = hexedInitcode.trim();
         for (final var entry : SAUCERSWAP_V2_FACTORY_LINK_IDS.entrySet()) {
-            linkedInitcode = linkedInitcode.replace(entry.getKey(), Bytes.wrap(asEvmAddress(entry.getValue())).toHex());
+            linkedInitcode = linkedInitcode.replace(
+                    entry.getKey(), Bytes.wrap(asEvmAddress(entry.getValue())).toHex());
         }
         if (linkedInitcode.contains("__$")) {
             throw new IllegalStateException("Unresolved SaucerSwap V2 factory library placeholders remain");
@@ -1797,7 +1851,8 @@ public class SystemTransactions {
 
     private byte[] linkedSaucerSwapV2FactoryInitcode() {
         final var encoder = new HexMessageEncoder();
-        return encoder.decode(linkedSaucerSwapV2FactoryHexedInitcode(hexedInitcodeAt(SAUCERSWAP_V2_FACTORY_INITCODE_LOC)));
+        return encoder.decode(
+                linkedSaucerSwapV2FactoryHexedInitcode(hexedInitcodeAt(SAUCERSWAP_V2_FACTORY_INITCODE_LOC)));
     }
 
     private @NonNull String hexedInitcodeAt(@NonNull final String location) {
