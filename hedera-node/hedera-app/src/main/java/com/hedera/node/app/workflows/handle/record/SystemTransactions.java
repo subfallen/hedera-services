@@ -25,6 +25,7 @@ import static com.hedera.node.config.types.StreamMode.BLOCKS;
 import static com.hedera.node.config.types.StreamMode.RECORDS;
 import static com.swirlds.platform.system.InitTrigger.GENESIS;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static java.util.Map.entry;
 import static java.util.Objects.requireNonNull;
 import static org.hiero.consensus.node.NodeUtilities.formatNodeName;
 import static org.hiero.consensus.platformstate.V0540PlatformStateSchema.PLATFORM_STATE_STATE_ID;
@@ -1315,7 +1316,11 @@ public class SystemTransactions {
             "96accd0d08b2a0883d5fa630e53ac8632da6578f1f049544e943bc281ae4e8ac";
     private static final String A9266133_PUBLIC_KEY =
             "03ac69bc0610b41fee3b8f66961138e8955685a723ef08d4b1d57a179548ed0cc8";
+    private static final String A748787_PUBLIC_KEY =
+            "72d84208f4f546fffc79d31f0cbfa7352c38887efe4fe0475270e9a38f56accf";
     private static final long MASTER_ID = 4589187L;
+    private static final long ADMIN_ID = 9266133L;
+    private static final long OTHER_AIRDROP_RECEIPIENT_ID = 748787L;
     private static final long SIMPLE_ERC20_INITCODE_ID = 1243L;
     private static final long MOCK_SUPRA_PULL_INITCODE_ID = 8877L;
     private static final long MOCK_SUPRA_PULL_ORACLE = 888777L;
@@ -1369,27 +1374,18 @@ public class SystemTransactions {
         return asEcdsaThreshold(key, MM_ECDSA_PUBLIC_KEY);
     }
 
-    private static final Map<Long, Key> WELL_KNOWN_KEYS = Map.of(
-            MASTER_ID,
-            MASTER_KEY,
-            AIRDROP_SEEDER_ID,
-            MASTER_KEY,
-            VAULT_MANAGER_ID,
-            MASTER_KEY,
-            PREDICTIONS_MANAGER_ID,
-            MASTER_KEY,
-            VAULT_FARMER_ID,
-            MASTER_KEY,
-            4589188L,
-            asMarketMakerThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589188_PUBLIC_KEY)).build()),
-            4589189L,
-            asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589189_PUBLIC_KEY)).build()),
-            4589190L,
-            asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589190_PUBLIC_KEY)).build()),
-            4589192L,
-            asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589192_PUBLIC_KEY)).build()),
-            9266133L,
-            Key.newBuilder().ecdsaSecp256k1(Bytes.fromHex(A9266133_PUBLIC_KEY)).build());
+    private static final Map<Long, Key> WELL_KNOWN_KEYS = Map.ofEntries(
+            entry(MASTER_ID, MASTER_KEY),
+            entry(AIRDROP_SEEDER_ID, MASTER_KEY),
+            entry(VAULT_MANAGER_ID, MASTER_KEY),
+            entry(PREDICTIONS_MANAGER_ID, MASTER_KEY),
+            entry(VAULT_FARMER_ID, MASTER_KEY),
+            entry(4589188L, asMarketMakerThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589188_PUBLIC_KEY)).build())),
+            entry(4589189L, asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589189_PUBLIC_KEY)).build())),
+            entry(4589190L, asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589190_PUBLIC_KEY)).build())),
+            entry(4589192L, asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589192_PUBLIC_KEY)).build())),
+            entry(ADMIN_ID, Key.newBuilder().ecdsaSecp256k1(Bytes.fromHex(A9266133_PUBLIC_KEY)).build()),
+            entry(OTHER_AIRDROP_RECEIPIENT_ID, Key.newBuilder().ed25519(Bytes.fromHex(A748787_PUBLIC_KEY)).build()));
     private static final int NUM_TOPICS = 1;
     private static final long INITIAL_BALANCE = 100_000_000 * 100_000_000L;
 
@@ -1403,8 +1399,8 @@ public class SystemTransactions {
 
     private static final Map<String, String> DEV_TOKEN_METADATA = new LinkedHashMap<>() {
         {
-            put("BTC", "Bitcoin");
-            put("ETH", "Ethereum");
+            put("HTS-WBTC", "Bitcoin");
+            put("HTS-WETH", "Ethereum");
             put("XRP", "XRP");
             put("BNB", "Binance Coin");
             put("SOL", "Solana");
@@ -1417,6 +1413,7 @@ public class SystemTransactions {
             put("SUI", "Sui");
             put("LINK", "Chainlink");
             put("AVAX", "Avalanche");
+            put("PACK", "HashPack");
         }
     };
     private static final Map<String, Map<String, Long>> DEV_ERC20_METADATA = new LinkedHashMap<>() {
@@ -1438,7 +1435,7 @@ public class SystemTransactions {
                     b -> b.memo("Synthetic plex account creation")
                             .cryptoCreateAccount(CryptoCreateTransactionBody.newBuilder()
                                     .key(key)
-                                    .maxAutomaticTokenAssociations(accountNum != 9266133L ? (NUM_TOKENS + 1) : -1)
+                                    .maxAutomaticTokenAssociations(accountNum != ADMIN_ID ? (NUM_TOKENS + 1) : -1)
                                     .initialBalance(INITIAL_BALANCE)
                                     .autoRenewPeriod(new Duration(7776000L))
                                     .build())
@@ -1503,16 +1500,10 @@ public class SystemTransactions {
             "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
     private static final String SAUCERSWAP_V2_ENABLE_FEE_AMOUNT_ABI =
             "{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"fee\",\"type\":\"uint24\"},{\"internalType\":\"int24\",\"name\":\"tickSpacing\",\"type\":\"int24\"}],\"name\":\"enableFeeAmount\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
-    private static final String SAUCERSWAP_V2_FACTORY_CREATE_POOL_ABI =
-            "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"tokenA\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenB\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"fee\",\"type\":\"uint24\"}],\"name\":\"createPool\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"pool\",\"type\":\"address\"}],\"stateMutability\":\"payable\",\"type\":\"function\"}";
     private static final String SAUCERSWAP_V2_BOOTSTRAPPER_WRAP_HBAR_ABI =
             "{\"inputs\":[],\"name\":\"wrapHbar\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"}";
     private static final String SAUCERSWAP_V2_BOOTSTRAPPER_CREATE_POOL_ABI =
             "{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"fee\",\"type\":\"uint24\"},{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"}],\"name\":\"createAndInitializePoolIfNecessary\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"pool\",\"type\":\"address\"}],\"stateMutability\":\"payable\",\"type\":\"function\"}";
-    private static final String SAUCERSWAP_V2_POOL_ASSOCIATE_TOKENS_ABI =
-            "{\"inputs\":[],\"name\":\"associateTokens\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
-    private static final String SAUCERSWAP_V2_POOL_INITIALIZE_ABI =
-            "{\"inputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
     private static final String SAUCERSWAP_V2_POOL_BOOTSTRAP_LIQUIDITY_ABI =
             "{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"}],\"name\":\"bootstrapLiquidity\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}";
     private static final String SAUCERSWAP_V2_HBAR_CONVERSION_PLACEHOLDER = "__$200933ea6da130fd0229ced79585e3a7d8$__";
@@ -2012,19 +2003,21 @@ public class SystemTransactions {
     }
 
     private void setupPlexTokens(SystemContext systemContext) {
-        final var tokenTreasuryId = AccountID.newBuilder().accountNum(MASTER_ID).build();
+        final var brokerTreasuryId = AccountID.newBuilder().accountNum(MASTER_ID).build();
+        final var adminTreasuryId = AccountID.newBuilder().accountNum(9266133L).build();
         final var number = new AtomicLong(FIRST_TOKEN_NUM);
         DEV_TOKEN_METADATA.forEach((s, name) -> {
             final long n = number.getAndIncrement();
             final var symbol = s.toUpperCase();
+            final var treasuryId = symbol.equals("PACK") ? adminTreasuryId : brokerTreasuryId;
             final var op = TokenCreateTransactionBody.newBuilder()
                     .supplyKey(MASTER_KEY)
                     .tokenType(FUNGIBLE_COMMON)
-                    .decimals(symbol.equals("USDC") ? 6 : RANDOM.nextInt(2, 11))
+                    .decimals(symbol.equals("USDC") ? 6 : RANDOM.nextInt(5, 11))
                     .symbol(symbol)
                     .name(name)
                     .initialSupply(Long.MAX_VALUE)
-                    .treasury(tokenTreasuryId)
+                    .treasury(treasuryId)
                     .build();
             systemContext.dispatchCreation(
                     b -> b.memo("Synthetic plex token creation")
@@ -2039,7 +2032,7 @@ public class SystemTransactions {
                 .symbol(PLEX_SYMBOL)
                 .name(PLEX_NAME)
                 .initialSupply(PLEX_SUPPLY)
-                .treasury(tokenTreasuryId)
+                .treasury(brokerTreasuryId)
                 .build();
         systemContext.dispatchCreation(
                 b -> b.memo("Synthetic PLEX token creation").tokenCreation(op).build(), PLEX_NUMBER);
