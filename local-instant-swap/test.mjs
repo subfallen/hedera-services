@@ -5,6 +5,15 @@ import {createEVM} from '@ethereumjs/evm';
 import {createAddressFromString} from '@ethereumjs/util';
 
 const manifest = JSON.parse(fs.readFileSync(new URL('fixtures.json', import.meta.url), 'utf8'));
+assert.equal(manifest.principalFunding.source, 'APPLICATION_BOT_FUNDING_WORKFLOW');
+assert.equal(manifest.principalFunding.targetUsdPerToken, '1000');
+assert.deepEqual(manifest.principalFunding.genesisTokenBalances,
+  {'0.0.20000': '0', '0.0.20001': '0', '0.0.20005': '0', '0.0.666666': '0'});
+assert.deepEqual(manifest.principalFunding.targetTokenBalances, manifest.customerInitialTokenBalances);
+for (const [token, decimals, microUsdPrice] of [[20000,7,100000000000n], [20001,6,2000000000n], [20005,6,1000000n], [666666,6,100000n]]) {
+  const atoms = BigInt(manifest.principalFunding.targetTokenBalances['0.0.' + token]);
+  assert.equal(atoms * microUsdPrice / (10n ** BigInt(decimals)), 1000000000n);
+}
 const dockerfile = fs.readFileSync(new URL('../Dockerfile', import.meta.url), 'utf8');
 const dockerignore = fs.readFileSync(new URL('../.dockerignore', import.meta.url), 'utf8').split(/\r?\n/);
 for (const contract of ['LocalInstantSwapPrincipal', ...manifest.pools.map(pool => pool.contract)]) {

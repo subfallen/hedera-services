@@ -220,7 +220,7 @@ class SystemTransactionsTest {
     }
 
     @Test
-    void localInstantSwapInventoryUsesRealAssociationsAndBalancedNonApprovalTransfers() {
+    void localInstantSwapAssociatesAllOwnersButFundsOnlyCustomersAtGenesis() {
         final var transactions = new ArrayList<TransactionBody>();
         final var context = mock(SystemContext.class);
         doAnswer(invocation -> {
@@ -233,30 +233,44 @@ class SystemTransactionsTest {
                 .when(context)
                 .dispatchAdmin(any());
         subject.setupLocalInstantSwapPortfolio(context);
-        assertEquals(14, transactions.size());
+        assertEquals(13, transactions.size());
         final var owners = new ArrayList<Long>();
         owners.add(888881L);
         owners.addAll(SystemTransactions.LOCAL_INSTANT_SWAP_CUSTOMERS);
+        final var associations = transactions.stream()
+                .filter(TransactionBody::hasTokenAssociate)
+                .map(TransactionBody::tokenAssociateOrThrow)
+                .toList();
+        assertEquals(7, associations.size());
         for (int i = 0; i < owners.size(); i++) {
-            final var associate = transactions.get(2 * i).tokenAssociateOrThrow();
+            final var associate = associations.get(i);
             assertEquals(owners.get(i).longValue(), associate.accountOrThrow().accountNumOrThrow());
             assertEquals(
                     List.of(20000L, 20001L, 20005L, 666666L),
                     associate.tokens().stream().map(t -> t.tokenNum()).toList());
-            final var transfer = transactions.get(2 * i + 1).cryptoTransferOrThrow();
+        }
+        final var transfers = transactions.stream()
+                .filter(TransactionBody::hasCryptoTransfer)
+                .map(TransactionBody::cryptoTransferOrThrow)
+                .toList();
+        assertEquals(6, transfers.size());
+        for (int i = 0; i < SystemTransactions.LOCAL_INSTANT_SWAP_CUSTOMERS.size(); i++) {
+            final var transfer = transfers.get(i);
             assertEquals(4, transfer.tokenTransfers().size());
             for (final var list : transfer.tokenTransfers()) {
-                final long inventory = SystemTransactions.LOCAL_INSTANT_SWAP_INVENTORY.get(
+                final long inventory = SystemTransactions.LOCAL_INSTANT_SWAP_CUSTOMER_INVENTORY.get(
                         list.tokenOrThrow().tokenNum());
                 assertEquals(2, list.transfers().size());
                 assertEquals(
                         4589187L, list.transfers().getFirst().accountIDOrThrow().accountNumOrThrow());
                 assertEquals(-inventory, list.transfers().getFirst().amount());
                 assertEquals(
-                        owners.get(i).longValue(),
+                        SystemTransactions.LOCAL_INSTANT_SWAP_CUSTOMERS.get(i).longValue(),
                         list.transfers().getLast().accountIDOrThrow().accountNumOrThrow());
                 assertEquals(inventory, list.transfers().getLast().amount());
                 assertTrue(list.transfers().stream().noneMatch(AccountAmount::isApproval));
+                assertTrue(list.transfers().stream()
+                        .noneMatch(amount -> amount.accountIDOrThrow().accountNumOrThrow() == 888881L));
             }
         }
     }

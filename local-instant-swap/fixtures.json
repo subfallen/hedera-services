@@ -29,6 +29,22 @@
   "principalPublicKeyHex": "fe38cd4050d48585733961ac69578b69d8290950e36c09dc7f509574aa40a617",
   "principalRuntimeBytecode": "0x6080604052348015600f57600080fd5b506004361060285760003560e01c8063481c6a7514602d575b600080fd5b6040805130815290519081900360200190f3fea164736f6c6343000825000a",
   "principalRuntimeSha256": "7a16dd890bc5bf316b34563879e0a4a53e626eafaf7a93a2ec47b9d74ed4da1b",
+  "principalFunding": {
+    "source": "APPLICATION_BOT_FUNDING_WORKFLOW",
+    "targetUsdPerToken": "1000",
+    "genesisTokenBalances": {
+      "0.0.20000": "0",
+      "0.0.20001": "0",
+      "0.0.20005": "0",
+      "0.0.666666": "0"
+    },
+    "targetTokenBalances": {
+      "0.0.20000": "100000",
+      "0.0.20001": "500000",
+      "0.0.20005": "1000000000",
+      "0.0.666666": "10000000000"
+    }
+  },
   "customerAccountIds": [
     "0.0.888882",
     "0.0.888883",
@@ -39,6 +55,12 @@
   ],
   "customerPublicKeyType": "ECDSA_SECP256K1",
   "customerPublicKeyHex": "03760246f2c3e01e7c4c818c0f499dce566df2d6a0ac3371afd63a79d935680831",
+  "customerInitialTokenBalances": {
+    "0.0.20000": "100000",
+    "0.0.20001": "500000",
+    "0.0.20005": "1000000000",
+    "0.0.666666": "10000000000"
+  },
   "quoteTokenId": "0.0.20005",
   "quoteTokenDecimals": 6,
   "pools": [

@@ -19,21 +19,27 @@ The principal's public key is derived from the app's disposable `account9999` Ed
 broker signing keys are distinct. No private keys are added here. The real principal admin key authorizes its token
 debit, each customer signs its own input debit, and the broker pays and signs the native `CryptoTransfer` transaction.
 
-Each principal/customer starts with 10,000 HBAR and exactly $1,000 of each admitted HTS asset:
+Each principal/customer starts with 10,000 HBAR. The principal has explicit associations and **zero HTS inventory at
+genesis**. Each customer receives exactly $1,000 of each admitted HTS asset; these amounts are also the principal's
+target after the application's ordinary audited BOT funding workflow completes:
 
-| Asset | Token ID | Decimals | Initial atoms per account |
+| Asset | Token ID | Decimals | Customer genesis / principal application-funded target atoms |
 | --- | --- | --- | --- |
 | USDC | `0.0.20005` | 6 | 1,000,000,000 |
 | PLEX | `0.0.666666` | 6 | 10,000,000,000 |
 | HTS-WETH | `0.0.20001` | 6 | 500,000 |
 | HTS-WBTC | `0.0.20000` | 7 | 100,000 |
 
-Associations are explicit, and funding is a balanced transfer from the existing token treasury/broker. No custom fee
+Associations are explicit, and customer funding is a balanced transfer from the existing token treasury/broker. No custom fee
 schedule or fee-schedule key is installed. WETH/WBTC decimals now have explicit values equal to their previous seeded
 random values; the old random draws are still consumed, preserving every other token's decimals. ERC-20 contracts
 `0.0.111111`/`0.0.222222` are separate fixtures and are not these admitted HTS assets.
 
-The backend must event-onboard the principal as an ACTIVE BOT and let its ordinary durable allowance workflow approve
+The backend must event-onboard the principal as an ACTIVE BOT and fund its four assets through the ordinary audited
+BOT funding workflow. A direct genesis transfer to the principal has no corresponding application capital authority
+and correctly fails readiness with a custody mismatch; do not manufacture opening capital records to hide it.
+`fixtures.json` records the zero genesis balances, application funding source, and $1,000-per-token targets.
+The backend must also let its ordinary durable allowance workflow approve
 the **actual dynamically created settlements contract**. Genesis cannot guess that spender, and a broker-spender
 allowance would not establish readiness. Direct Instant Swap settlement uses ordinary signed debits, not allowances.
 

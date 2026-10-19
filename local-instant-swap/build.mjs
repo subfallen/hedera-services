@@ -48,6 +48,7 @@ const pools = specifications.map(([symbol, contract, contractNum, tokenNum, deci
       '0x3850c7bd': abi(sqrtPriceX96, tick, 0, 1, 1, 0, 1), '0x1a686502': abi(liquidity), '0xd0c93a7c': abi(60)},
     tickBitmap, ticks, emptyBitmapResponse: abi(0), emptyTickResponse: abi(0,0,0,0,0,0,0,0)};
 });
+const targetTokenBalances = {'0.0.20000': '100000', '0.0.20001': '500000', '0.0.20005': '1000000000', '0.0.666666': '10000000000'};
 const manifest = {version: 1, network: 'local-hedera', ledgerId: '03', chainId: 298,
   description: 'Immutable synthetic reference data; not funded AMM liquidity or swap execution.',
   compiler: solc.version(), compilerSettings: input.settings,
@@ -56,9 +57,13 @@ const manifest = {version: 1, network: 'local-hedera', ledgerId: '03', chainId: 
   principalPublicKeyHex: 'fe38cd4050d48585733961ac69578b69d8290950e36c09dc7f509574aa40a617',
   principalRuntimeBytecode: '0x' + principal.evm.deployedBytecode.object,
   principalRuntimeSha256: sha256(principal.evm.deployedBytecode.object),
+  principalFunding: {source: 'APPLICATION_BOT_FUNDING_WORKFLOW', targetUsdPerToken: '1000',
+    genesisTokenBalances: Object.fromEntries(Object.keys(targetTokenBalances).map(token => [token, '0'])),
+    targetTokenBalances},
   customerAccountIds: Array.from({length: 6}, (_, i) => '0.0.' + (888882 + i)),
   customerPublicKeyType: 'ECDSA_SECP256K1',
   customerPublicKeyHex: '03760246f2c3e01e7c4c818c0f499dce566df2d6a0ac3371afd63a79d935680831',
+  customerInitialTokenBalances: targetTokenBalances,
   quoteTokenId: '0.0.20005', quoteTokenDecimals: 6, pools};
 files.set(path.join(here, 'fixtures.json'), JSON.stringify(manifest, null, 2) + '\n');
 for (const [file, content] of files) {

@@ -1457,8 +1457,8 @@ public class SystemTransactions {
     static final List<Long> LOCAL_INSTANT_SWAP_CUSTOMERS =
             List.of(888882L, 888883L, 888884L, 888885L, 888886L, 888887L);
     private static final long LOCAL_INSTANT_SWAP_HBAR = 10_000L * 100_000_000L;
-    // Exactly $1,000 of each supported asset at the immutable local reference prices. Sorted order is reproducible.
-    static final Map<Long, Long> LOCAL_INSTANT_SWAP_INVENTORY = Collections.unmodifiableMap(new TreeMap<>(
+    // Customer-only genesis inventory: exactly $1,000 per asset at the immutable local reference prices.
+    static final Map<Long, Long> LOCAL_INSTANT_SWAP_CUSTOMER_INVENTORY = Collections.unmodifiableMap(new TreeMap<>(
             Map.of(20000L, 100_000L, 20001L, 500_000L, 20005L, 1_000_000_000L, 666666L, 10_000_000_000L)));
     private static final List<String> LOCAL_INSTANT_SWAP_REFERENCE_SYMBOLS = List.of("PLEX", "WETH", "WBTC", "WHBAR");
     private static final List<String> LOCAL_INSTANT_SWAP_REFERENCE_CONTRACTS = List.of(
@@ -1504,7 +1504,7 @@ public class SystemTransactions {
         final List<Long> owners = new ArrayList<>();
         owners.add(LOCAL_INSTANT_SWAP_PRINCIPAL);
         owners.addAll(LOCAL_INSTANT_SWAP_CUSTOMERS);
-        final List<TokenID> tokenIds = LOCAL_INSTANT_SWAP_INVENTORY.keySet().stream()
+        final List<TokenID> tokenIds = LOCAL_INSTANT_SWAP_CUSTOMER_INVENTORY.keySet().stream()
                 .sorted()
                 .map(token -> TokenID.newBuilder().tokenNum(token).build())
                 .toList();
@@ -1515,7 +1515,12 @@ public class SystemTransactions {
                             .account(ownerId)
                             .tokens(tokenIds)
                             .build()));
-            final List<TokenTransferList> transfers = LOCAL_INSTANT_SWAP_INVENTORY.entrySet().stream()
+            // Principal capital must enter through the application's audited BOT funding workflow after onboarding.
+            // A genesis transfer has no corresponding capital authority and causes a custody mismatch at readiness.
+            if (owner == LOCAL_INSTANT_SWAP_PRINCIPAL) {
+                continue;
+            }
+            final List<TokenTransferList> transfers = LOCAL_INSTANT_SWAP_CUSTOMER_INVENTORY.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
                     .map(inventory -> TokenTransferList.newBuilder()
                             .token(TokenID.newBuilder()
@@ -1532,7 +1537,7 @@ public class SystemTransactions {
                                             .build())
                             .build())
                     .toList();
-            systemContext.dispatchAdmin(b -> b.memo("Local Instant Swap initial token inventory")
+            systemContext.dispatchAdmin(b -> b.memo("Local Instant Swap customer token inventory")
                     .cryptoTransfer(CryptoTransferTransactionBody.newBuilder()
                             .tokenTransfers(transfers)
                             .build()));
