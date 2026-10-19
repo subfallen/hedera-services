@@ -32,6 +32,8 @@ COPY hedera-node/config.txt /app/config.txt
 COPY hedera-node/data/keys/generate.sh /app/data/keys/generate.sh
 COPY hedera-node/data/config/api-permission.properties /app/data/config/api-permission.properties
 COPY hedera-node/configuration/dev/genesis-network.json /app/data/config/genesis-network.json
+COPY hedera-node/configuration/dev/application.properties /app/data/config/application.properties
+COPY hedera-node/configuration/dev/settings.txt /app/settings.txt
 
 # Copy application JAR
 COPY hedera-node/hedera-app/build/libs/app-0.73.0-SNAPSHOT.jar /app/app.jar

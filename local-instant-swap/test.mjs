@@ -5,6 +5,16 @@ import {createEVM} from '@ethereumjs/evm';
 import {createAddressFromString} from '@ethereumjs/util';
 
 const manifest = JSON.parse(fs.readFileSync(new URL('fixtures.json', import.meta.url), 'utf8'));
+const dockerfile = fs.readFileSync(new URL('../Dockerfile', import.meta.url), 'utf8');
+const dockerignore = fs.readFileSync(new URL('../.dockerignore', import.meta.url), 'utf8').split(/\r?\n/);
+for (const contract of ['LocalInstantSwapPrincipal', ...manifest.pools.map(pool => pool.contract)]) {
+  assert(dockerfile.includes(`COPY ${contract}.bin /app/${contract}.bin`), 'Missing image artifact ' + contract);
+  assert(dockerignore.includes('!' + contract + '.bin'), 'Excluded image artifact ' + contract);
+}
+for (const file of ['application.properties', 'settings.txt']) {
+  assert(dockerfile.includes('COPY hedera-node/configuration/dev/' + file + ' '), 'Missing dev config ' + file);
+  assert(dockerignore.includes('!hedera-node/configuration/dev/' + file), 'Excluded dev config ' + file);
+}
 const evm = await createEVM();
 const bytes = hex => Buffer.from(hex.replace(/^0x/, ''), 'hex');
 const word = n => BigInt.asUintN(256, BigInt(n)).toString(16).padStart(64, '0');

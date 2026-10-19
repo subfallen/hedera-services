@@ -65,7 +65,8 @@ npm test
 ```
 
 The pinned Solidity compiler targets Paris and writes five root-level `.bin` artifacts plus `fixtures.json`. The
-Dockerfile packages those artifacts. `check` recompiles and requires byte-for-byte reproducibility. The EVM tests
+Dockerfile packages those artifacts and the same dev configuration/settings used by `:app:run`, pinning local
+ledger/chain IDs and record/sidecar generation. `check` recompiles and requires byte-for-byte reproducibility. The EVM tests
 execute the creation bytecode, verify deployed runtime hashes, all exported ABI answers, initialized and absent ticks,
 signed bitmap boundaries, invalid calldata, exact square-root prices, and the principal manager ABI. Java tests in
 `SystemTransactionsTest` check the dispatched identities, immutable pool creation, token metadata, explicit

@@ -17,8 +17,15 @@
 !SaucerSwapV2SwapRouter.bin
 !SaucerSwapV2Quoter.bin
 !SaucerSwapV2Bootstrapper.bin
+!LocalInstantSwapPrincipal.bin
+!LocalInstantSwapPlexUsdc.bin
+!LocalInstantSwapWethUsdc.bin
+!LocalInstantSwapWbtcUsdc.bin
+!LocalInstantSwapWhbarUsdc.bin
 !hedera-node/log4j2.xml
 !hedera-node/config.txt
 !hedera-node/data/keys/generate.sh
 !hedera-node/data/config/api-permission.properties
 !hedera-node/configuration/dev/genesis-network.json
+!hedera-node/configuration/dev/application.properties
+!hedera-node/configuration/dev/settings.txt

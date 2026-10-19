@@ -6,6 +6,7 @@ on:
       - "local-instant-swap/**"
       - "LocalInstantSwap*.bin"
       - "Dockerfile"
+      - ".dockerignore"
       - ".github/workflows/local-instant-swap-fixtures.yaml"
   push:
     branches: [plex-master]
@@ -13,6 +14,7 @@ on:
       - "local-instant-swap/**"
       - "LocalInstantSwap*.bin"
       - "Dockerfile"
+      - ".dockerignore"
       - ".github/workflows/local-instant-swap-fixtures.yaml"
 
 permissions:
