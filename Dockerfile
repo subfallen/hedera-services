@@ -20,6 +20,11 @@ COPY SaucerSwapV2Factory.bin /app/SaucerSwapV2Factory.bin
 COPY SaucerSwapV2SwapRouter.bin /app/SaucerSwapV2SwapRouter.bin
 COPY SaucerSwapV2Quoter.bin /app/SaucerSwapV2Quoter.bin
 COPY SaucerSwapV2Bootstrapper.bin /app/SaucerSwapV2Bootstrapper.bin
+COPY LocalInstantSwapPrincipal.bin /app/LocalInstantSwapPrincipal.bin
+COPY LocalInstantSwapPlexUsdc.bin /app/LocalInstantSwapPlexUsdc.bin
+COPY LocalInstantSwapWethUsdc.bin /app/LocalInstantSwapWethUsdc.bin
+COPY LocalInstantSwapWbtcUsdc.bin /app/LocalInstantSwapWbtcUsdc.bin
+COPY LocalInstantSwapWhbarUsdc.bin /app/LocalInstantSwapWhbarUsdc.bin
 
 # Copy config
 COPY hedera-node/log4j2.xml /app/log4j2.xml

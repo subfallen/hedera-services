@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -25,6 +26,7 @@ import com.hedera.hapi.node.base.FileID;
 import com.hedera.hapi.node.base.TransferList;
 import com.hedera.hapi.node.state.blockrecords.BlockInfo;
 import com.hedera.hapi.node.state.file.File;
+import com.hedera.hapi.node.transaction.TransactionBody;
 import com.hedera.node.app.blocks.BlockStreamManager;
 import com.hedera.node.app.fees.ExchangeRateManager;
 import com.hedera.node.app.records.BlockRecordManager;
@@ -42,6 +44,7 @@ import com.hedera.node.app.spi.info.NetworkInfo;
 import com.hedera.node.app.spi.info.NodeInfo;
 import com.hedera.node.app.spi.migrate.StartupNetworks;
 import com.hedera.node.app.spi.records.SelfNodeAccountIdManager;
+import com.hedera.node.app.spi.workflows.SystemContext;
 import com.hedera.node.app.state.HederaRecordCache;
 import com.hedera.node.app.workflows.handle.DispatchProcessor;
 import com.hedera.node.app.workflows.handle.steps.ParentTxnFactory;
@@ -62,7 +65,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.SplittableRandom;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -185,6 +193,123 @@ class SystemTransactionsTest {
     }
 
     @Test
+    void localInstantSwapIdentitiesAreAKeyedContractAndSixDistinctCustomerAccounts() {
+        final var creations = new LinkedHashMap<Long, TransactionBody>();
+        subject.setupLocalInstantSwapAccounts(capturingCreations(creations));
+        assertEquals(
+                List.of(888881L, 888882L, 888883L, 888884L, 888885L, 888886L, 888887L),
+                List.copyOf(creations.keySet()));
+        final var principal = creations.get(888881L).contractCreateInstanceOrThrow();
+        assertTrue(principal.adminKeyOrThrow().hasEd25519());
+        assertFalse(principal.adminKeyOrThrow().hasThresholdKey());
+        assertEquals(10_000L * 100_000_000L, principal.initialBalance());
+        assertFalse(principal.initcodeOrThrow().length() == 0);
+        assertEquals(
+                4589187L,
+                creations.get(888881L).transactionIDOrThrow().accountIDOrThrow().accountNumOrThrow());
+        for (final long id : SystemTransactions.LOCAL_INSTANT_SWAP_CUSTOMERS) {
+            final var customer = creations.get(id).cryptoCreateAccountOrThrow();
+            assertTrue(customer.keyOrThrow().hasEcdsaSecp256k1());
+            assertFalse(customer.keyOrThrow().hasThresholdKey());
+            assertEquals(10_000L * 100_000_000L, customer.initialBalance());
+            assertEquals(0, customer.maxAutomaticTokenAssociations());
+        }
+    }
+
+    @Test
+    void localInstantSwapInventoryUsesRealAssociationsAndBalancedNonApprovalTransfers() {
+        final var transactions = new ArrayList<TransactionBody>();
+        final var context = mock(SystemContext.class);
+        doAnswer(invocation -> {
+                    final Consumer<TransactionBody.Builder> spec = invocation.getArgument(0);
+                    final var builder = TransactionBody.newBuilder();
+                    spec.accept(builder);
+                    transactions.add(builder.build());
+                    return null;
+                })
+                .when(context)
+                .dispatchAdmin(any());
+        subject.setupLocalInstantSwapPortfolio(context);
+        assertEquals(14, transactions.size());
+        final var owners = new ArrayList<Long>();
+        owners.add(888881L);
+        owners.addAll(SystemTransactions.LOCAL_INSTANT_SWAP_CUSTOMERS);
+        for (int i = 0; i < owners.size(); i++) {
+            final var associate = transactions.get(2 * i).tokenAssociateOrThrow();
+            assertEquals(owners.get(i).longValue(), associate.accountOrThrow().accountNumOrThrow());
+            assertEquals(
+                    List.of(20000L, 20001L, 20005L, 666666L),
+                    associate.tokens().stream().map(t -> t.tokenNum()).toList());
+            final var transfer = transactions.get(2 * i + 1).cryptoTransferOrThrow();
+            assertEquals(4, transfer.tokenTransfers().size());
+            for (final var list : transfer.tokenTransfers()) {
+                final long inventory = SystemTransactions.LOCAL_INSTANT_SWAP_INVENTORY.get(
+                        list.tokenOrThrow().tokenNum());
+                assertEquals(2, list.transfers().size());
+                assertEquals(
+                        4589187L, list.transfers().getFirst().accountIDOrThrow().accountNumOrThrow());
+                assertEquals(-inventory, list.transfers().getFirst().amount());
+                assertEquals(
+                        owners.get(i).longValue(),
+                        list.transfers().getLast().accountIDOrThrow().accountNumOrThrow());
+                assertEquals(inventory, list.transfers().getLast().amount());
+                assertTrue(list.transfers().stream().noneMatch(AccountAmount::isApproval));
+            }
+        }
+    }
+
+    @Test
+    void localReferenceContractsHaveStableIdsAndNoAdminKey() {
+        final var creations = new LinkedHashMap<Long, TransactionBody>();
+        subject.setupLocalInstantSwapReferences(capturingCreations(creations));
+        assertEquals(List.of(777782L, 777783L, 777784L, 777785L), List.copyOf(creations.keySet()));
+        for (final var body : creations.values()) {
+            final var contract = body.contractCreateInstanceOrThrow();
+            assertFalse(contract.hasAdminKey());
+            assertTrue(contract.initcodeOrThrow().length() > 0);
+            assertEquals(0, contract.initialBalance());
+            assertTrue(body.memo().startsWith("Local Instant Swap immutable reference "));
+        }
+    }
+
+    @Test
+    void pinnedLocalTokenDecimalsPreserveEveryExistingRandomDrawAndRepeatAcrossGenesis() {
+        final var first = new LinkedHashMap<Long, TransactionBody>();
+        final var second = new LinkedHashMap<Long, TransactionBody>();
+        subject.setupPlexTokens(capturingCreations(first));
+        subject.setupPlexTokens(capturingCreations(second));
+        assertEquals(first, second);
+        final var priorRandom = new SplittableRandom(1_234_567L);
+        for (long token = 20000L; token <= 20014L; token++) {
+            final int priorDecimals = token == 20005L ? 6 : priorRandom.nextInt(5, 11);
+            final var creation = first.get(token).tokenCreationOrThrow();
+            assertEquals(priorDecimals, creation.decimals(), "Existing token " + token);
+            assertTrue(creation.customFees().isEmpty());
+            assertFalse(creation.hasFeeScheduleKey());
+        }
+        assertEquals(7, first.get(20000L).tokenCreationOrThrow().decimals());
+        assertEquals(6, first.get(20001L).tokenCreationOrThrow().decimals());
+        assertEquals(6, first.get(666666L).tokenCreationOrThrow().decimals());
+        assertTrue(first.get(666666L).tokenCreationOrThrow().customFees().isEmpty());
+        assertFalse(first.get(666666L).tokenCreationOrThrow().hasFeeScheduleKey());
+    }
+
+    private SystemContext capturingCreations(Map<Long, TransactionBody> creations) {
+        final var context = mock(SystemContext.class);
+        doAnswer(invocation -> {
+                    final Consumer<TransactionBody.Builder> spec = invocation.getArgument(0);
+                    final var builder = TransactionBody.newBuilder();
+                    spec.accept(builder);
+                    assertNull(
+                            creations.put(invocation.getArgument(1), builder.build()), "Duplicate fixture entity ID");
+                    return null;
+                })
+                .when(context)
+                .dispatchCreation(any(Consumer.class), anyLong());
+        return context;
+    }
+
+    @Test
     void decodesAbiErrorStringReason() {
         assertEquals(
                 "pool-mint-empty",
@@ -208,14 +333,12 @@ class SystemTransactionsTest {
                         + "00000000000000000000000000000000000bde2c"
                         + "00000000000000000000000000000000000bde2d"
                         + "00000000000000000000000000000000000bde2e",
-                SystemTransactions.linkedSaucerSwapV2FactoryHexedInitcode(
-                        "__$200933ea6da130fd0229ced79585e3a7d8$__"
-                                + "__$b52f7ddb7db4526c8b5c81c46a9292f776$__"
-                                + "__$0bfb80e64db80801b8c84ca5a4f3d5625a$__"
-                                + "__$a07b62fc6554bedc1c2bb30ca3e36905b5$__"
-                                + "__$b0e7cb723832c483f6f53b3242f4ec39c0$__"));
+                SystemTransactions.linkedSaucerSwapV2FactoryHexedInitcode("__$200933ea6da130fd0229ced79585e3a7d8$__"
+                        + "__$b52f7ddb7db4526c8b5c81c46a9292f776$__"
+                        + "__$0bfb80e64db80801b8c84ca5a4f3d5625a$__"
+                        + "__$a07b62fc6554bedc1c2bb30ca3e36905b5$__"
+                        + "__$b0e7cb723832c483f6f53b3242f4ec39c0$__"));
     }
-
 
     @Test
     void testFirstReservedSystemTimeForNonGenesis() {

@@ -47,6 +47,7 @@ import com.hedera.hapi.node.state.roster.RosterEntry;
 import com.hedera.hapi.node.state.token.StakingNodeInfo;
 import com.hedera.hapi.node.token.CryptoCreateTransactionBody;
 import com.hedera.hapi.node.token.CryptoTransferTransactionBody;
+import com.hedera.hapi.node.token.TokenAssociateTransactionBody;
 import com.hedera.hapi.node.token.TokenCreateTransactionBody;
 import com.hedera.hapi.node.transaction.NodeStake;
 import com.hedera.hapi.node.transaction.TransactionBody;
@@ -446,7 +447,9 @@ public class SystemTransactions {
         ((CommittableWritableStates) writableEntityStates).commit();
 
         setupPlexAccounts(systemContext);
+        setupLocalInstantSwapAccounts(systemContext);
         setupPlexTokens(systemContext);
+        setupLocalInstantSwapPortfolio(systemContext);
         setupPlexTopics(systemContext);
         setupPlexFeeCollector(systemContext);
         setupSimpleErc20Initcode(systemContext);
@@ -461,6 +464,7 @@ public class SystemTransactions {
         setupSaucerSwapV2Quoter(systemContext);
         setupSaucerSwapV2Bootstrapper(systemContext);
         seedSaucerSwapV2Pool(systemContext);
+        setupLocalInstantSwapReferences(systemContext);
         setupMockPullOracleInitcode(systemContext);
         setupMockPullOracle(systemContext, MOCK_SUPRA_PULL_ORACLE);
     }
@@ -1316,8 +1320,7 @@ public class SystemTransactions {
             "96accd0d08b2a0883d5fa630e53ac8632da6578f1f049544e943bc281ae4e8ac";
     private static final String A9266133_PUBLIC_KEY =
             "03ac69bc0610b41fee3b8f66961138e8955685a723ef08d4b1d57a179548ed0cc8";
-    private static final String A748787_PUBLIC_KEY =
-            "72d84208f4f546fffc79d31f0cbfa7352c38887efe4fe0475270e9a38f56accf";
+    private static final String A748787_PUBLIC_KEY = "72d84208f4f546fffc79d31f0cbfa7352c38887efe4fe0475270e9a38f56accf";
     private static final long MASTER_ID = 4589187L;
     private static final long ADMIN_ID = 9266133L;
     private static final long OTHER_AIRDROP_RECEIPIENT_ID = 748787L;
@@ -1380,12 +1383,34 @@ public class SystemTransactions {
             entry(VAULT_MANAGER_ID, MASTER_KEY),
             entry(PREDICTIONS_MANAGER_ID, MASTER_KEY),
             entry(VAULT_FARMER_ID, MASTER_KEY),
-            entry(4589188L, asMarketMakerThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589188_PUBLIC_KEY)).build())),
-            entry(4589189L, asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589189_PUBLIC_KEY)).build())),
-            entry(4589190L, asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589190_PUBLIC_KEY)).build())),
-            entry(4589192L, asTraderThreshold(Key.newBuilder().ed25519(Bytes.fromHex(A4589192_PUBLIC_KEY)).build())),
-            entry(ADMIN_ID, Key.newBuilder().ecdsaSecp256k1(Bytes.fromHex(A9266133_PUBLIC_KEY)).build()),
-            entry(OTHER_AIRDROP_RECEIPIENT_ID, Key.newBuilder().ed25519(Bytes.fromHex(A748787_PUBLIC_KEY)).build()));
+            entry(
+                    4589188L,
+                    asMarketMakerThreshold(Key.newBuilder()
+                            .ed25519(Bytes.fromHex(A4589188_PUBLIC_KEY))
+                            .build())),
+            entry(
+                    4589189L,
+                    asTraderThreshold(Key.newBuilder()
+                            .ed25519(Bytes.fromHex(A4589189_PUBLIC_KEY))
+                            .build())),
+            entry(
+                    4589190L,
+                    asTraderThreshold(Key.newBuilder()
+                            .ed25519(Bytes.fromHex(A4589190_PUBLIC_KEY))
+                            .build())),
+            entry(
+                    4589192L,
+                    asTraderThreshold(Key.newBuilder()
+                            .ed25519(Bytes.fromHex(A4589192_PUBLIC_KEY))
+                            .build())),
+            entry(
+                    ADMIN_ID,
+                    Key.newBuilder()
+                            .ecdsaSecp256k1(Bytes.fromHex(A9266133_PUBLIC_KEY))
+                            .build()),
+            entry(
+                    OTHER_AIRDROP_RECEIPIENT_ID,
+                    Key.newBuilder().ed25519(Bytes.fromHex(A748787_PUBLIC_KEY)).build()));
     private static final int NUM_TOPICS = 1;
     private static final long INITIAL_BALANCE = 100_000_000 * 100_000_000L;
 
@@ -1424,7 +1449,115 @@ public class SystemTransactions {
     };
     private static final int NUM_TOKENS = DEV_TOKEN_METADATA.size();
 
-    private static final SplittableRandom RANDOM = new SplittableRandom(1_234_567L);
+    private static final long TOKEN_DECIMALS_SEED = 1_234_567L;
+
+    static final long LOCAL_INSTANT_SWAP_PRINCIPAL = 888881L;
+    static final List<Long> LOCAL_INSTANT_SWAP_CUSTOMERS =
+            List.of(888882L, 888883L, 888884L, 888885L, 888886L, 888887L);
+    private static final long LOCAL_INSTANT_SWAP_HBAR = 10_000L * 100_000_000L;
+    // Exactly $1,000 of each supported asset at the immutable local reference prices. Sorted order is reproducible.
+    static final Map<Long, Long> LOCAL_INSTANT_SWAP_INVENTORY = Collections.unmodifiableMap(new TreeMap<>(
+            Map.of(20000L, 100_000L, 20001L, 500_000L, 20005L, 1_000_000_000L, 666666L, 10_000_000_000L)));
+    private static final List<String> LOCAL_INSTANT_SWAP_REFERENCE_SYMBOLS = List.of("PLEX", "WETH", "WBTC", "WHBAR");
+    private static final List<String> LOCAL_INSTANT_SWAP_REFERENCE_CONTRACTS = List.of(
+            "LocalInstantSwapPlexUsdc",
+            "LocalInstantSwapWethUsdc",
+            "LocalInstantSwapWbtcUsdc",
+            "LocalInstantSwapWhbarUsdc");
+
+    /** Real consensus entities and records; the application registers the principal through its ordinary BOT flow. */
+    void setupLocalInstantSwapAccounts(@NonNull final SystemContext systemContext) {
+        final var principal = ContractCreateTransactionBody.newBuilder()
+                .initcode(Bytes.wrap(unhexedInitcodeAt("/app/LocalInstantSwapPrincipal.bin")))
+                .adminKey(Key.newBuilder()
+                        .ed25519(Bytes.fromHex(A4589188_PUBLIC_KEY))
+                        .build())
+                .initialBalance(LOCAL_INSTANT_SWAP_HBAR)
+                .autoRenewPeriod(new Duration(7776000L))
+                .gas(1_000_000L)
+                .build();
+        systemContext.dispatchCreation(
+                b -> b.memo("Local Instant Swap principal BOT contract")
+                        .transactionID(TransactionID.newBuilder()
+                                .accountID(AccountID.newBuilder().accountNum(MASTER_ID))
+                                .build())
+                        .contractCreateInstance(principal),
+                LOCAL_INSTANT_SWAP_PRINCIPAL);
+        for (final long customer : LOCAL_INSTANT_SWAP_CUSTOMERS) {
+            systemContext.dispatchCreation(
+                    b -> b.memo("Local Instant Swap customer")
+                            .cryptoCreateAccount(CryptoCreateTransactionBody.newBuilder()
+                                    .key(Key.newBuilder()
+                                            .ecdsaSecp256k1(Bytes.fromHex(TRADER_ECDSA_PUBLIC_KEY))
+                                            .build())
+                                    .initialBalance(LOCAL_INSTANT_SWAP_HBAR)
+                                    .maxAutomaticTokenAssociations(0)
+                                    .autoRenewPeriod(new Duration(7776000L))
+                                    .build()),
+                    customer);
+        }
+    }
+
+    void setupLocalInstantSwapPortfolio(@NonNull final SystemContext systemContext) {
+        final List<Long> owners = new ArrayList<>();
+        owners.add(LOCAL_INSTANT_SWAP_PRINCIPAL);
+        owners.addAll(LOCAL_INSTANT_SWAP_CUSTOMERS);
+        final List<TokenID> tokenIds = LOCAL_INSTANT_SWAP_INVENTORY.keySet().stream()
+                .sorted()
+                .map(token -> TokenID.newBuilder().tokenNum(token).build())
+                .toList();
+        for (final long owner : owners) {
+            final AccountID ownerId = AccountID.newBuilder().accountNum(owner).build();
+            systemContext.dispatchAdmin(b -> b.memo("Local Instant Swap explicit token associations")
+                    .tokenAssociate(TokenAssociateTransactionBody.newBuilder()
+                            .account(ownerId)
+                            .tokens(tokenIds)
+                            .build()));
+            final List<TokenTransferList> transfers = LOCAL_INSTANT_SWAP_INVENTORY.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(inventory -> TokenTransferList.newBuilder()
+                            .token(TokenID.newBuilder()
+                                    .tokenNum(inventory.getKey())
+                                    .build())
+                            .transfers(
+                                    AccountAmount.newBuilder()
+                                            .accountID(AccountID.newBuilder().accountNum(MASTER_ID))
+                                            .amount(-inventory.getValue())
+                                            .build(),
+                                    AccountAmount.newBuilder()
+                                            .accountID(ownerId)
+                                            .amount(inventory.getValue())
+                                            .build())
+                            .build())
+                    .toList();
+            systemContext.dispatchAdmin(b -> b.memo("Local Instant Swap initial token inventory")
+                    .cryptoTransfer(CryptoTransferTransactionBody.newBuilder()
+                            .tokenTransfers(transfers)
+                            .build()));
+        }
+        // The application's normal durable allowance owner grants the actual dynamically deployed settlements
+        // contract its allowance. A broker-spender allowance here would not prove ordinary BOT trading readiness.
+    }
+
+    void setupLocalInstantSwapReferences(@NonNull final SystemContext systemContext) {
+        for (int i = 0; i < LOCAL_INSTANT_SWAP_REFERENCE_CONTRACTS.size(); i++) {
+            dispatchContractCreation(
+                    systemContext,
+                    MASTER_ID,
+                    777782L + i,
+                    "Local Instant Swap immutable reference " + LOCAL_INSTANT_SWAP_REFERENCE_SYMBOLS.get(i),
+                    unhexedInitcodeAt("/app/" + LOCAL_INSTANT_SWAP_REFERENCE_CONTRACTS.get(i) + ".bin"),
+                    1_000_000L);
+        }
+    }
+
+    static int localTokenDecimals(@NonNull final String symbol, final int previousRandomDraw) {
+        return switch (symbol) {
+            case "USDC", "HTS-WETH" -> 6;
+            case "HTS-WBTC" -> 7;
+            default -> previousRandomDraw;
+        };
+    }
 
     private void setupPlexAccounts(SystemContext systemContext) {
         log.info("Setting up PLEX accounts");
@@ -2002,18 +2135,22 @@ public class SystemTransactions {
                 contractId);
     }
 
-    private void setupPlexTokens(SystemContext systemContext) {
-        final var brokerTreasuryId = AccountID.newBuilder().accountNum(MASTER_ID).build();
+    void setupPlexTokens(SystemContext systemContext) {
+        final var brokerTreasuryId =
+                AccountID.newBuilder().accountNum(MASTER_ID).build();
         final var adminTreasuryId = AccountID.newBuilder().accountNum(9266133L).build();
         final var number = new AtomicLong(FIRST_TOKEN_NUM);
+        final var decimalsRandom = new SplittableRandom(TOKEN_DECIMALS_SEED);
         DEV_TOKEN_METADATA.forEach((s, name) -> {
             final long n = number.getAndIncrement();
             final var symbol = s.toUpperCase();
+            // Consume the original draw even for pinned WBTC/WETH so every other existing token keeps its decimals.
+            final int previousDecimals = symbol.equals("USDC") ? 6 : decimalsRandom.nextInt(5, 11);
             final var treasuryId = symbol.equals("PACK") ? adminTreasuryId : brokerTreasuryId;
             final var op = TokenCreateTransactionBody.newBuilder()
                     .supplyKey(MASTER_KEY)
                     .tokenType(FUNGIBLE_COMMON)
-                    .decimals(symbol.equals("USDC") ? 6 : RANDOM.nextInt(5, 11))
+                    .decimals(localTokenDecimals(symbol, previousDecimals))
                     .symbol(symbol)
                     .name(name)
                     .initialSupply(Long.MAX_VALUE)
