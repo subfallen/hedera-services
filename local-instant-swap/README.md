@@ -13,8 +13,9 @@ network (`ledger.id=0x03`, EVM chain ID 298). They do not provision any producti
 | WBTC/USDC reference | `0.0.777784` | Immutable synthetic reference at $100,000/WBTC |
 | WHBAR/USDC reference | `0.0.777785` | Immutable synthetic HBAR cost mark at $0.10/WHBAR |
 
-The principal's public key is the existing `A4589188_PUBLIC_KEY` local fixture (the app's disposable `account9999`
-Ed25519 signing fixture). Customers use the existing `TRADER_ECDSA_PUBLIC_KEY` fixture. The principal, customer, and
+The principal's public key is derived from the app's disposable `account9999` Ed25519 signing fixture and pinned in
+`fixtures.json` (it differs from the historical `A4589188_PUBLIC_KEY` constant). Customers use the existing
+`TRADER_ECDSA_PUBLIC_KEY` fixture. The principal, customer, and
 broker signing keys are distinct. No private keys are added here. The real principal admin key authorizes its token
 debit, each customer signs its own input debit, and the broker pays and signs the native `CryptoTransfer` transaction.
 

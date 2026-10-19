@@ -53,7 +53,7 @@ const manifest = {version: 1, network: 'local-hedera', ledgerId: '03', chainId: 
   compiler: solc.version(), compilerSettings: input.settings,
   principalAccountId: '0.0.888881',
   principalPublicKeyType: 'ED25519',
-  principalPublicKeyHex: '2cfc00272518122e7c080b94fb01dae7b6ac6f0d92e5314d97583b75ac4996c0',
+  principalPublicKeyHex: 'fe38cd4050d48585733961ac69578b69d8290950e36c09dc7f509574aa40a617',
   principalRuntimeBytecode: '0x' + principal.evm.deployedBytecode.object,
   principalRuntimeSha256: sha256(principal.evm.deployedBytecode.object),
   customerAccountIds: Array.from({length: 6}, (_, i) => '0.0.' + (888882 + i)),

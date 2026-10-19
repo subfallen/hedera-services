@@ -1452,6 +1452,8 @@ public class SystemTransactions {
     private static final long TOKEN_DECIMALS_SEED = 1_234_567L;
 
     static final long LOCAL_INSTANT_SWAP_PRINCIPAL = 888881L;
+    private static final String LOCAL_INSTANT_SWAP_PRINCIPAL_PUBLIC_KEY =
+            "fe38cd4050d48585733961ac69578b69d8290950e36c09dc7f509574aa40a617";
     static final List<Long> LOCAL_INSTANT_SWAP_CUSTOMERS =
             List.of(888882L, 888883L, 888884L, 888885L, 888886L, 888887L);
     private static final long LOCAL_INSTANT_SWAP_HBAR = 10_000L * 100_000_000L;
@@ -1470,7 +1472,7 @@ public class SystemTransactions {
         final var principal = ContractCreateTransactionBody.newBuilder()
                 .initcode(Bytes.wrap(unhexedInitcodeAt("/app/LocalInstantSwapPrincipal.bin")))
                 .adminKey(Key.newBuilder()
-                        .ed25519(Bytes.fromHex(A4589188_PUBLIC_KEY))
+                        .ed25519(Bytes.fromHex(LOCAL_INSTANT_SWAP_PRINCIPAL_PUBLIC_KEY))
                         .build())
                 .initialBalance(LOCAL_INSTANT_SWAP_HBAR)
                 .autoRenewPeriod(new Duration(7776000L))

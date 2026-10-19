@@ -201,6 +201,9 @@ class SystemTransactionsTest {
                 List.copyOf(creations.keySet()));
         final var principal = creations.get(888881L).contractCreateInstanceOrThrow();
         assertTrue(principal.adminKeyOrThrow().hasEd25519());
+        assertEquals(
+                "fe38cd4050d48585733961ac69578b69d8290950e36c09dc7f509574aa40a617",
+                principal.adminKeyOrThrow().ed25519OrThrow().toHex());
         assertFalse(principal.adminKeyOrThrow().hasThresholdKey());
         assertEquals(10_000L * 100_000_000L, principal.initialBalance());
         assertFalse(principal.initcodeOrThrow().length() == 0);
