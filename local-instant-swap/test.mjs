@@ -66,7 +66,8 @@ for (const pool of manifest.pools) {
   assert.equal(BigInt.asIntN(256, BigInt('0x' + pool.ticks[pool.tickUpper].slice(66,130))), -BigInt(pool.liquidity));
 }
 const principalInit = fs.readFileSync(new URL('../LocalInstantSwapPrincipal.bin', import.meta.url), 'utf8').trim();
-const principalDeployment = await run(principalInit);
+// HAPI ContractCreate.initialBalance is delivered as constructor call value.
+const principalDeployment = await run(principalInit, '0x', {value: 10_000n * 100_000_000n * 10_000_000_000n});
 assert.equal(principalDeployment.exceptionError, undefined);
 assert.equal('0x' + Buffer.from(principalDeployment.returnValue).toString('hex'), manifest.principalRuntimeBytecode);
 const address = createAddressFromString('0x' + BigInt(888881).toString(16).padStart(40, '0'));

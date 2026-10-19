@@ -3,6 +3,7 @@ pragma solidity 0.8.37;
 
 /// Same manager ABI as the application's SelfManager BOT. HAPI assigns its distinct admin key.
 contract LocalInstantSwapPrincipal {
+    constructor() payable {}
     function manager() external view returns (address) { return address(this); }
 }
 
