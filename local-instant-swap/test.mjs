@@ -7,6 +7,14 @@ import {createAddressFromString} from '@ethereumjs/util';
 const manifest = JSON.parse(fs.readFileSync(new URL('fixtures.json', import.meta.url), 'utf8'));
 assert.equal(manifest.principalFunding.source, 'APPLICATION_BOT_FUNDING_WORKFLOW');
 assert.equal(manifest.principalFunding.targetUsdPerToken, '1000');
+assert.equal(manifest.principalFunding.genesisNativeHbarTinybar, '0');
+assert.equal(manifest.principalFunding.targetNativeHbarTinybar, '1000000000000');
+assert.equal(manifest.customerInitialNativeHbarTinybar, '1000000000000');
+assert.equal(manifest.nativeHbar.referenceAuthority,
+  'ISN1|298|0|777777|8|20005|6|777785|20005|777777|1500|1|WHBAR_TINYBAR_1_TO_1');
+assert.equal(manifest.nativeHbar.tokenId, '0.0.0');
+assert.equal(manifest.nativeHbar.decimals, 8);
+assert.equal(BigInt(manifest.principalFunding.targetNativeHbarTinybar) * 100000n / (10n ** 8n), 1000000000n);
 assert.deepEqual(manifest.principalFunding.genesisTokenBalances,
   {'0.0.20000': '0', '0.0.20001': '0', '0.0.20005': '0', '0.0.666666': '0'});
 assert.deepEqual(manifest.principalFunding.targetTokenBalances, manifest.customerInitialTokenBalances);
@@ -75,8 +83,8 @@ for (const pool of manifest.pools) {
   assert.equal(BigInt.asIntN(256, BigInt('0x' + pool.ticks[pool.tickUpper].slice(66,130))), -BigInt(pool.liquidity));
 }
 const principalInit = fs.readFileSync(new URL('../LocalInstantSwapPrincipal.bin', import.meta.url), 'utf8').trim();
-// HAPI ContractCreate.initialBalance is delivered as constructor call value.
-const principalDeployment = await run(principalInit, '0x', {value: 10_000n * 100_000_000n * 10_000_000_000n});
+// The principal is created with zero balance; all capital is funded through the application afterward.
+const principalDeployment = await run(principalInit);
 assert.equal(principalDeployment.exceptionError, undefined);
 assert.equal('0x' + Buffer.from(principalDeployment.returnValue).toString('hex'), manifest.principalRuntimeBytecode);
 const address = createAddressFromString('0x' + BigInt(888881).toString(16).padStart(40, '0'));

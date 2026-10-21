@@ -32,6 +32,8 @@
   "principalFunding": {
     "source": "APPLICATION_BOT_FUNDING_WORKFLOW",
     "targetUsdPerToken": "1000",
+    "genesisNativeHbarTinybar": "0",
+    "targetNativeHbarTinybar": "1000000000000",
     "genesisTokenBalances": {
       "0.0.20000": "0",
       "0.0.20001": "0",
@@ -60,6 +62,15 @@
     "0.0.20001": "500000",
     "0.0.20005": "1000000000",
     "0.0.666666": "10000000000"
+  },
+  "customerInitialNativeHbarTinybar": "1000000000000",
+  "nativeHbar": {
+    "tokenId": "0.0.0",
+    "decimals": 8,
+    "usdPrice": "0.10",
+    "wrappedTokenId": "0.0.777777",
+    "referencePoolId": "0.0.777785",
+    "referenceAuthority": "ISN1|298|0|777777|8|20005|6|777785|20005|777777|1500|1|WHBAR_TINYBAR_1_TO_1"
   },
   "quoteTokenId": "0.0.20005",
   "quoteTokenDecimals": 6,

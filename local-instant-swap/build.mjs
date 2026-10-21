@@ -58,12 +58,17 @@ const manifest = {version: 1, network: 'local-hedera', ledgerId: '03', chainId: 
   principalRuntimeBytecode: '0x' + principal.evm.deployedBytecode.object,
   principalRuntimeSha256: sha256(principal.evm.deployedBytecode.object),
   principalFunding: {source: 'APPLICATION_BOT_FUNDING_WORKFLOW', targetUsdPerToken: '1000',
+    genesisNativeHbarTinybar: '0', targetNativeHbarTinybar: '1000000000000',
     genesisTokenBalances: Object.fromEntries(Object.keys(targetTokenBalances).map(token => [token, '0'])),
     targetTokenBalances},
   customerAccountIds: Array.from({length: 6}, (_, i) => '0.0.' + (888882 + i)),
   customerPublicKeyType: 'ECDSA_SECP256K1',
   customerPublicKeyHex: '03760246f2c3e01e7c4c818c0f499dce566df2d6a0ac3371afd63a79d935680831',
   customerInitialTokenBalances: targetTokenBalances,
+  customerInitialNativeHbarTinybar: '1000000000000',
+  nativeHbar: {tokenId: '0.0.0', decimals: 8, usdPrice: '0.10', wrappedTokenId: '0.0.777777',
+    referencePoolId: '0.0.777785',
+    referenceAuthority: 'ISN1|298|0|777777|8|20005|6|777785|20005|777777|1500|1|WHBAR_TINYBAR_1_TO_1'},
   quoteTokenId: '0.0.20005', quoteTokenDecimals: 6, pools};
 files.set(path.join(here, 'fixtures.json'), JSON.stringify(manifest, null, 2) + '\n');
 for (const [file, content] of files) {

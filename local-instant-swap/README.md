@@ -11,7 +11,7 @@ network (`ledger.id=0x03`, EVM chain ID 298). They do not provision any producti
 | PLEX/USDC reference | `0.0.777782` | Immutable synthetic reference at $0.10/PLEX |
 | WETH/USDC reference | `0.0.777783` | Immutable synthetic reference at $2,000/WETH |
 | WBTC/USDC reference | `0.0.777784` | Immutable synthetic reference at $100,000/WBTC |
-| WHBAR/USDC reference | `0.0.777785` | Immutable synthetic HBAR cost mark at $0.10/WHBAR |
+| WHBAR/USDC reference | `0.0.777785` | Immutable synthetic native HBAR reference and fee mark at $0.10/WHBAR |
 
 The principal's public key is derived from the app's disposable `account9999` Ed25519 signing fixture and pinned in
 `fixtures.json` (it differs from the historical `A4589188_PUBLIC_KEY` constant). Customers use the existing
@@ -19,12 +19,13 @@ The principal's public key is derived from the app's disposable `account9999` Ed
 broker signing keys are distinct. No private keys are added here. The real principal admin key authorizes its token
 debit, each customer signs its own input debit, and the broker pays and signs the native `CryptoTransfer` transaction.
 
-Each principal/customer starts with 10,000 HBAR. The principal has explicit associations and **zero HTS inventory at
-genesis**. Each customer receives exactly $1,000 of each admitted HTS asset; these amounts are also the principal's
+The principal starts with **zero HBAR and zero HTS inventory at genesis**, with explicit HTS associations. Each
+customer receives 10,000 HBAR and exactly $1,000 of each admitted HTS asset; these amounts are also the principal's
 target after the application's ordinary audited BOT funding workflow completes:
 
 | Asset | Token ID | Decimals | Customer genesis / principal application-funded target atoms |
 | --- | --- | --- | --- |
+| Native HBAR | application asset `0.0.0` | 8 | 1,000,000,000,000 tinybar |
 | USDC | `0.0.20005` | 6 | 1,000,000,000 |
 | PLEX | `0.0.666666` | 6 | 10,000,000,000 |
 | HTS-WETH | `0.0.20001` | 6 | 500,000 |
@@ -35,10 +36,14 @@ schedule or fee-schedule key is installed. WETH/WBTC decimals now have explicit 
 random values; the old random draws are still consumed, preserving every other token's decimals. ERC-20 contracts
 `0.0.111111`/`0.0.222222` are separate fixtures and are not these admitted HTS assets.
 
-The backend must event-onboard the principal as an ACTIVE BOT and fund its four assets through the ordinary audited
+Native HBAR is settled as a native transfer and has no HTS token relationship. The WHBAR/USDC fixture supplies its
+explicit one-tinybar-to-one-WHBAR-atom reference binding; WHBAR is not customer inventory or an alias for custody.
+`fixtures.json` keeps native balances separate from HTS relationship balances and pins that reference authority.
+
+The backend must event-onboard the principal as an ACTIVE BOT and fund all five assets through the ordinary audited
 BOT funding workflow. A direct genesis transfer to the principal has no corresponding application capital authority
 and correctly fails readiness with a custody mismatch; do not manufacture opening capital records to hide it.
-`fixtures.json` records the zero genesis balances, application funding source, and $1,000-per-token targets.
+`fixtures.json` records the zero genesis balances, application funding source, and $1,000-per-asset targets.
 The backend must also let its ordinary durable allowance workflow approve
 the **actual dynamically created settlements contract**. Genesis cannot guess that spender, and a broker-spender
 allowance would not establish readiness. Direct Instant Swap settlement uses ordinary signed debits, not allowances.
@@ -78,6 +83,17 @@ execute the creation bytecode, verify deployed runtime hashes, all exported ABI 
 signed bitmap boundaries, invalid calldata, exact square-root prices, and the principal manager ABI. Java tests in
 `SystemTransactionsTest` check the dispatched identities, immutable pool creation, token metadata, explicit
 associations, and balanced inventory transfers. CI verifies the generated artifacts and EVM contract behavior.
+
+Before a local image build, rebuild the Java genesis implementation and dependencies from the repository root:
+
+```sh
+./gradlew :app:copyLib :app:jar
+docker build -t plex-dev-cn:local-instant-swap .
+```
+
+The Dockerfile consumes these prebuilt Java artifacts. `docker-build.sh` publishes a multi-platform registry image;
+use it only for an explicitly authorized release after coordinated validation. Native `./gradlew :app:run` builds
+its own Java dependencies and configuration.
 
 When changing the shared manifest, update the copies in both application and mock mirror in the same coordinated
 change. These fixture IDs are reserved by this fork; do not reuse them for a different runtime or meaning.

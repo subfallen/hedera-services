@@ -1474,7 +1474,8 @@ public class SystemTransactions {
                 .adminKey(Key.newBuilder()
                         .ed25519(Bytes.fromHex(LOCAL_INSTANT_SWAP_PRINCIPAL_PUBLIC_KEY))
                         .build())
-                .initialBalance(LOCAL_INSTANT_SWAP_HBAR)
+                // All principal capital, including native HBAR, enters via the audited application BOT workflow.
+                .initialBalance(0L)
                 .autoRenewPeriod(new Duration(7776000L))
                 .gas(1_000_000L)
                 .build();
